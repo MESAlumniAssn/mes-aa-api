@@ -87,7 +87,7 @@ class UserDAL:
 
     async def check_if_email_exists(self, email: str):
         q = await self.session.execute(select(User).where(User.email == email))
-        return q.scalars().last()
+        return q.scalars().first()
 
     async def lastser_details_for_alt_id(self, alt_user_id: str) -> List[User]:
         q = await self.session.execute(
