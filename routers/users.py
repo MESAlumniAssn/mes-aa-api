@@ -56,6 +56,8 @@ def upload_file_to_cloudinary(
 
     file_name, file_ext = os.path.splitext(images[0].filename)
 
+    file_ext = file_ext.lower()
+
     if file_ext == ".jpg":
         file_ext = ".jpeg"
 
