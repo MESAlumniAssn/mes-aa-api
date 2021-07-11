@@ -15,7 +15,7 @@ from database.data_access.userDAL import UserDAL
 
 
 class Order(BaseModel):
-    amount: str
+    amount: int
     currency: str
     receipt: str
     notes: Optional[Dict]
