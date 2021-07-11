@@ -232,12 +232,19 @@ async def create_user(
 #         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User registration update failed")
 
 
-@router.get("/user/{email}", status_code=status.HTTP_200_OK)
-async def get_user_from_email(email: str, userDAL: UserDAL = Depends(get_user_dal)):
-    record = await userDAL.check_if_email_exists(email.lower())
+@router.get("/user/{alt_id}", status_code=status.HTTP_200_OK)
+async def get_user_from_email(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
+    record = await userDAL.get_user_details_for_alt_id(alt_id)
+    if not record:
+        return None
 
-    if record:
-        return f"A registration for {record.email} already exists"
+    membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+
+    return {
+        "name": record.first_name + " " + record.last_name,
+        "email": record.email,
+        "membership_id": membership_id,
+    }
 
 
 @router.get("/card_details/{alt_user_id}", status_code=status.HTTP_200_OK)
@@ -318,15 +325,3 @@ async def update_user_payment_status(
     await userDAL.update_payment_status(user_id)
 
     return "User details updated"
-
-
-@router.get("/alumni/search", status_code=status.HTTP_200_OK)
-async def find_alumni_records(
-    first_name: Optional[str],
-    last_name: Optional[str],
-    profession: Optional[str],
-    userDAL: UserDAL = Depends(get_user_dal),
-):
-    records = await userDAL.search_alumni(first_name, last_name, profession)
-
-    print(records)

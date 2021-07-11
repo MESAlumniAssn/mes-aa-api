@@ -105,6 +105,12 @@ class UserDAL:
 
         await self.session.execute(q)
 
+    async def update_payment_status_by_email(self, email: str) -> None:
+        q = update(User).where(User.email == email)
+        q = q.values(payment_status=True)
+
+        await self.session.execute(q)
+
     async def get_registered_members(self, member_type: str, payment) -> List[User]:
         q = await self.session.execute(
             select(User).where(
