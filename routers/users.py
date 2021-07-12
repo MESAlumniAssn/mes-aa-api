@@ -1,11 +1,11 @@
 import datetime
 import io
 import os
+import secrets
 import uuid
 from typing import List
 from typing import Optional
 
-import cloudinary.uploader
 from fastapi import Depends
 from fastapi import Form
 from fastapi import HTTPException
@@ -18,6 +18,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from . import get_user_dal
 from . import router
 from database.data_access.userDAL import UserDAL
+from helpers.imagekit_init import initialize_imagekit
+
+# import cloudinary.uploader
 
 
 # This function is mainly for images clicked on phones where the exif data causes image rotation
@@ -43,16 +46,46 @@ def fix_image_orientation(optimized_image):
     return optimized_image
 
 
-def upload_file_to_cloudinary(
-    alt_user_id: str, images: List, userDAL: UserDAL = Depends(get_user_dal)
-):
-    cloudinary.config(
-        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-        api_key=os.getenv("CLOUDINARY_API_KEY"),
-        api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-    )
+# def upload_file_to_cloudinary(
+#     alt_user_id: str, images: List, userDAL: UserDAL = Depends(get_user_dal)
+# ):
+#     cloudinary.config(
+#         cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+#         api_key=os.getenv("CLOUDINARY_API_KEY"),
+#         api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+#     )
 
-    image_size = (300, 300)
+#     image_size = (300, 300)
+
+#     file_name, file_ext = os.path.splitext(images[0].filename)
+
+#     file_ext = file_ext.lower()
+
+#     if file_ext == ".jpg":
+#         file_ext = ".jpeg"
+
+#     optimized_image = Image.open(images[0].file)
+
+#     optimized_image = fix_image_orientation(optimized_image)
+
+#     optimized_image = optimized_image.resize(image_size)
+
+#     in_mem_file = io.BytesIO()
+#     optimized_image.save(in_mem_file, format=file_ext[1:], optimized=True)
+#     in_mem_file.seek(0)
+
+#     upload_result = cloudinary.uploader.upload(
+#         in_mem_file,
+#         folder=f"MES-AA/profile/{alt_user_id}",
+#         overwrite=True,
+#         public_id=alt_user_id,
+#     )
+
+#     return upload_result["secure_url"]
+
+
+def upload_file_to_imagekit(alt_user_id: str, images: List):
+    imagekit = initialize_imagekit()
 
     file_name, file_ext = os.path.splitext(images[0].filename)
 
@@ -62,23 +95,25 @@ def upload_file_to_cloudinary(
         file_ext = ".jpeg"
 
     optimized_image = Image.open(images[0].file)
-
     optimized_image = fix_image_orientation(optimized_image)
-
-    optimized_image = optimized_image.resize(image_size)
 
     in_mem_file = io.BytesIO()
     optimized_image.save(in_mem_file, format=file_ext[1:], optimized=True)
     in_mem_file.seek(0)
 
-    upload_result = cloudinary.uploader.upload(
-        in_mem_file,
-        folder=f"MES-AA/profile/{alt_user_id}",
-        overwrite=True,
-        public_id=alt_user_id,
+    random_file_name = secrets.token_hex(8)
+
+    uploaded_image = imagekit.upload_file(
+        file=in_mem_file,
+        file_name=random_file_name,
+        options={
+            "folder": f"MES-AA/Profile/{alt_user_id}",
+            "is_private_file": False,
+            "use_unique_file_name": False,
+        },
     )
 
-    return upload_result["secure_url"]
+    return uploaded_image["response"]["url"]
 
 
 @router.post("/register/user", status_code=status.HTTP_201_CREATED)
@@ -145,7 +180,8 @@ async def create_user(
     )
 
     if images:
-        image_url = upload_file_to_cloudinary(str(alt_user_id), images)
+        # image_url = upload_file_to_cloudinary(str(alt_user_id), images)
+        image_url = upload_file_to_imagekit(str(alt_user_id), images)
 
     try:
         await userDAL.create_user(
