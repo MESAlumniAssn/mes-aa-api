@@ -1,7 +1,7 @@
 from fastapi import status
 
 from . import router
-from helpers.imagekit_init import initialize_imagekit_prod
+from helpers.imagekit_init import initialize_imagekit
 
 # import cloudinary.api
 
@@ -21,7 +21,7 @@ async def get_images_for_gallery():
     transformed_files = []
     file_obj = {}
 
-    imagekit = initialize_imagekit_prod()
+    imagekit = initialize_imagekit()
 
     files = imagekit.list_files({"path": "MES-AA/Gallery", "limit": 100})
 
@@ -33,7 +33,9 @@ async def get_images_for_gallery():
             }
         )
 
-        file_obj["url"] = file_url
+        file_url = file_url.split("?")
+
+        file_obj["url"] = file_url[0]
         file_obj["fileId"] = file["fileId"]
         file_obj["height"] = file["height"]
         file_obj["width"] = file["width"]
