@@ -14,6 +14,7 @@ from routers import (
     gallery,
     admin,
     payments,
+    email_messages,
 )
 from starlette.middleware.cors import CORSMiddleware
 
@@ -44,3 +45,4 @@ app.include_router(dashboard.router)
 app.include_router(gallery.router)
 app.include_router(admin.router)
 app.include_router(payments.router)
+app.include_router(email_messages.router)
