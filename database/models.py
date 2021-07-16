@@ -74,6 +74,7 @@ class User(Base):
     id_card_url = Column(String(500))
     membership_certificate_url = Column(String(500))
     payment_mode = Column(String(1), default="O")
+    manual_payment_notification = Column(Boolean, default=False)
 
     def __repr__(self):
         return f"User({self.id}, {self.email}, {self.country})"

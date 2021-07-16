@@ -191,8 +191,8 @@ async def create_user(
             email.lower(),
             mobile,
             birthday,
-            address1.capitalize(),
-            address2.capitalize(),
+            address1.title(),
+            address2.title(),
             city.title(),
             state.title(),
             pincode.upper(),
@@ -328,9 +328,11 @@ async def get_user_details_from_email(
 
     return {
         "membership_id": membership_id,
+        "membership_type": record.membership_type,
         "first_name": record.first_name,
         "full_name": alumnus_name,
         "email": record.email,
+        "manual_payment_notification": record.manual_payment_notification,
     }
 
 
@@ -361,3 +363,12 @@ async def update_user_payment_status(
     await userDAL.update_payment_status(user_id)
 
     return "User details updated"
+
+
+@router.put("/manual_payment/notification/{email}", status_code=status.HTTP_201_CREATED)
+async def update_user_manual_payment_notification_status(
+    email: str, userDAL: UserDAL = Depends(get_user_dal)
+):
+    await userDAL.update_manual_payment_notification(email)
+
+    return "Manual payment notification sent"

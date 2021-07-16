@@ -111,6 +111,12 @@ class UserDAL:
 
         await self.session.execute(q)
 
+    async def update_manual_payment_notification(self, email: str) -> None:
+        q = update(User).where(User.email == email)
+        q = q.values(manual_payment_notification=True)
+
+        await self.session.execute(q)
+
     async def get_registered_members(self, member_type: str, payment) -> List[User]:
         q = await self.session.execute(
             select(User).where(
