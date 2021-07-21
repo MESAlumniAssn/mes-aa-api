@@ -19,7 +19,7 @@ class TestimonialDAL:
         )
         return q.scalars().all()
 
-    async def create_testimonial(self, name, batch, message, approved, hash) -> None:
+    async def create_testimonial(self, name, batch, message, approved, hash):
         new_testimonial = Testimonial(
             name=name,
             batch=batch,
