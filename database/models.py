@@ -33,7 +33,9 @@ class Testimonial(Base):
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     batch = Column(String(10), nullable=False)
-    message = Column(String(550), nullable=False)
+    message = Column(String(1000), nullable=False)
+    approved = Column(Boolean, default=False)
+    verification_hash = Column(String(100))
 
     def __repr__(self):
         return f"Testimonial({self.name}, {self.batch})"

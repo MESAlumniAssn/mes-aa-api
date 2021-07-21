@@ -6,6 +6,7 @@ import os
 from fastapi import FastAPI
 from database.db import engine, Base
 from routers import (
+    index,
     committee,
     testimonial,
     users,
@@ -18,7 +19,7 @@ from routers import (
 )
 from starlette.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 
 origins = [os.getenv("CORS_ORIGIN_SERVER")]
 
@@ -46,3 +47,4 @@ app.include_router(gallery.router)
 app.include_router(admin.router)
 app.include_router(payments.router)
 app.include_router(email_messages.router)
+app.include_router(index.router)

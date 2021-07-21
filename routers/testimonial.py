@@ -1,11 +1,23 @@
 import random
+import secrets
 
 from fastapi import Depends
+from fastapi import HTTPException
 from fastapi import status
+from pydantic import BaseModel
 
 from . import get_testimonial_dal
 from . import router
 from database.data_access.testimonialDAL import TestimonialDAL
+
+
+class TestimonialCreate(BaseModel):
+    name: str
+    batch: str
+    message: str
+
+    class Config:
+        orm_mode = True
 
 
 @router.get("/testimonials", status_code=status.HTTP_200_OK)
@@ -34,3 +46,50 @@ async def get_all_testimonias(
     testimonial_dal: TestimonialDAL = Depends(get_testimonial_dal),
 ):
     return await testimonial_dal.fetch_all_testimonials()
+
+
+@router.post("/testimonials/create", status_code=status.HTTP_201_CREATED)
+async def create_new_testimonial(
+    testimonial: TestimonialCreate,
+    testimonial_dal: TestimonialDAL = Depends(get_testimonial_dal),
+):
+    hash_value = secrets.token_hex(50)
+
+    try:
+        return await testimonial_dal.create_testimonial(
+            testimonial.name.title(),
+            testimonial.batch,
+            testimonial.message,
+            False,
+            hash_value,
+        )
+    except Exception:
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create testimonial"
+        )
+
+
+@router.get("/testimonial/verify/{testimonial_hash}", status_code=status.HTTP_200_OK)
+async def verify_testimonial(
+    testimonial_hash: str,
+    testimonial_dal: TestimonialDAL = Depends(get_testimonial_dal),
+):
+    verification_hash, testimonial_id = testimonial_hash.split("+")
+
+    try:
+        record = await testimonial_dal.verify_if_testimonial_exists(
+            verification_hash, int(testimonial_id)
+        )
+
+        if record:
+            await testimonial_dal.update_testimonial_verification_status(
+                verification_hash
+            )
+            return "Testimonial verified"
+        else:
+            return "Could not verify this testimonial"
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error while verifying testimonial",
+        )

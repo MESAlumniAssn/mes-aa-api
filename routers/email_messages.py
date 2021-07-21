@@ -46,6 +46,16 @@ class ManualPaymentEmail(EmailBase):
         orm_mode = True
 
 
+class TestimonialEmail(BaseModel):
+    name: str
+    batch: str
+    message: str
+    approve_url: str
+
+    class Config:
+        orm_mode: True
+
+
 @router.post("/email/welcome", status_code=status.HTTP_201_CREATED)
 def send_welcome_message(email: WelcomeEmail, background_task: BackgroundTasks):
     message = Mail(from_email=os.getenv("PRESIDENT_EMAIL"), to_emails=email.to_email)
@@ -120,6 +130,32 @@ def send_manual_payment_email(
     try:
         background_task.add_task(send_message, message)
         # send_message(message)
+        return status.HTTP_202_ACCEPTED
+    except Exception:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+@router.post("/email/testimonial", status_code=status.HTTP_201_CREATED)
+def send_testimonial_approval_message(
+    email: TestimonialEmail, background_task: BackgroundTasks
+):
+    message = Mail(
+        from_email=os.getenv("CONTACT_EMAIL"), to_emails=os.getenv("CONTACT_EMAIL")
+    )
+
+    message.dynamic_template_data = {
+        "name": email.name,
+        "batch": email.batch,
+        "message": email.message,
+        "approve_url": email.approve_url,
+    }
+
+    message.template_id = os.getenv("TESTIMONIAL_SUBMISSION_TEMPLATE")
+
+    try:
+        background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
     except Exception:
         raise HTTPException(

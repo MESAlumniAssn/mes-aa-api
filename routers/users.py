@@ -248,26 +248,6 @@ async def create_user(
         )
 
 
-# @router.put("/update/user/{user_id}", status_code=status.HTTP_201_CREATED)
-# async def update_user(
-#     user_id: int, user_record: UserUpdates, userDAL: UserDAL = Depends(get_user_dal)
-# ):
-#     try:
-#         await userDAL.update_user_details(
-#             user_id,
-#             user_record.duration_start,
-#             user_record.duration_end,
-#             user_record.courses,
-#             user_record.vision,
-#             user_record.profession,
-#             user_record.other_interests,
-#         )
-
-#         return status.HTTP_201_CREATED
-#     except:
-#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User registration update failed")
-
-
 @router.get("/user/{alt_id}", status_code=status.HTTP_200_OK)
 async def get_user_from_email(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
     record = await userDAL.get_user_details_for_alt_id(alt_id)
