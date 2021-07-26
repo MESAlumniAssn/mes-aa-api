@@ -153,6 +153,8 @@ async def get_all_active_members(
         member["profession"] = record.profession
         member["other_interests"] = record.other_interests
         member["vision"] = record.vision
+        member["id_card_url"] = record.id_card_url
+        member["membership_certificate_url"] = record.membership_certificate_url
 
         all_members.append(member.copy())
 
