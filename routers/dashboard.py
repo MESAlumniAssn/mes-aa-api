@@ -198,6 +198,9 @@ async def get_recently_renewed_memberships(userDAL: UserDAL = Depends(get_user_d
     try:
         records = await userDAL.fetch_recently_renewed_memberships()
 
+        if not records:
+            return []
+
         today = datetime.date.today()
         renewed_memberships = []
         member = {}
@@ -223,5 +226,3 @@ async def get_recently_renewed_memberships(userDAL: UserDAL = Depends(get_user_d
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not fetch renewed memberships",
         )
-
-        return records

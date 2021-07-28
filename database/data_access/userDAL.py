@@ -157,7 +157,7 @@ class UserDAL:
             select(User).where(
                 User.payment_status,
                 User.membership_type == "Annual",
-                User.date_renewed is not None,
+                User.date_renewed != None,
             )
         )
 
