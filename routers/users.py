@@ -166,11 +166,13 @@ async def create_user(
         else None
     )
 
-    id_card_url = f"/card/{alt_user_id}"
+    domain = os.getenv("SITE_DOMAIN")
+
+    id_card_url = f"{domain}/card/{alt_user_id}"
 
     # Populate this for life members only
     membership_certificate_url = (
-        f"/certificate/{alt_user_id}" if membership_type == "Lifetime" else None
+        f"{domain}/certificate/{alt_user_id}" if membership_type == "Lifetime" else None
     )
 
     paid_amount = int(
@@ -323,6 +325,9 @@ async def get_user_details_from_membership_d(
     user_id = int(membership_id.split("-")[3])
 
     record = await userDAL.get_user_details_for_id(user_id)
+
+    if not record:
+        return "That id does not exist"
 
     membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
 

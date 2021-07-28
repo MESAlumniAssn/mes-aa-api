@@ -145,6 +145,24 @@ class UserDAL:
 
         return q.scalars().all()
 
+    async def fetch_expired_members(self):
+        q = await self.session.execute(
+            select(User).where(not User.payment_status, User.membership_expired)
+        )
+
+        return q.scalars().all()
+
+    async def fetch_recently_renewed_memberships(self):
+        q = await self.session.execute(
+            select(User).where(
+                User.payment_status,
+                User.membership_type == "Annual",
+                User.date_renewed is not None,
+            )
+        )
+
+        return q.scalars().all()
+
     # async def update_user_details(
     #     self,
     #     user_id: int,

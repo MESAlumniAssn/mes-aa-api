@@ -1,7 +1,9 @@
+import datetime
 from functools import reduce
 
 from babel.numbers import format_decimal
 from fastapi import Depends
+from fastapi import HTTPException
 from fastapi import status
 
 from . import get_user_dal
@@ -159,3 +161,67 @@ async def get_all_active_members(
         all_members.append(member.copy())
 
     return all_members
+
+
+@router.get("/alumniassn/dashboard/expired_members", status_code=status.HTTP_200_OK)
+async def get_all_expired_memberships(userDal: UserDAL = Depends(get_user_dal)):
+    try:
+        records = await userDal.fetch_expired_members()
+
+        expired_memberships = []
+        member = {}
+
+        for record in records:
+            member["id"] = record.id
+            member[
+                "membership_id"
+            ] = f"MESAA-LM-{str(record.duration_end)[-2:]}-{record.id}"
+            member["full_name"] = (
+                record.prefix + ". " + record.first_name + " " + record.last_name
+            )
+            member["email"] = record.email
+            member["id_card_url"] = record.id_card_url
+            member["membership_certificate_url"] = record.membership_certificate_url
+
+            expired_memberships.append(member.copy())
+
+        return expired_memberships
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not fetch expired memberships",
+        )
+
+
+@router.get("/alumniassn/dashboard/recently_renewed", status_code=status.HTTP_200_OK)
+async def get_recently_renewed_memberships(userDAL: UserDAL = Depends(get_user_dal)):
+    try:
+        records = await userDAL.fetch_recently_renewed_memberships()
+
+        today = datetime.date.today()
+        renewed_memberships = []
+        member = {}
+
+        for record in records:
+            if int((today - record.date_renewed).total_seconds() / 3600 / 24) < 30:
+                member["id"] = record.id
+                member[
+                    "membership_id"
+                ] = f"MESAA-LM-{str(record.duration_end)[-2:]}-{record.id}"
+                member["full_name"] = (
+                    record.prefix + ". " + record.first_name + " " + record.last_name
+                )
+                member["email"] = record.email
+                member["id_card_url"] = record.id_card_url
+                member["membership_certificate_url"] = record.membership_certificate_url
+
+                renewed_memberships.append(member.copy())
+
+        return renewed_memberships
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not fetch renewed memberships",
+        )
+
+        return records

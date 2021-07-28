@@ -71,6 +71,8 @@ class User(Base):
     payment_amount = Column(Float, default=0.0, index=True)
     date_created = Column(Date, default=datetime.date.today)
     membership_valid_upto = Column(Date)
+    membership_expired = Column(Boolean, default=False)
+    date_renewed = Column(Date)
     alt_user_id = Column(String(50))
     profile_url = Column(String(500))
     id_card_url = Column(String(500))
