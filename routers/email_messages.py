@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sendgrid.helpers.mail import Mail
 
 from . import router
+from helpers.random_messages import return_random_message
 from helpers.sendgrid_init import send_message
 
 
@@ -18,14 +19,14 @@ class EmailBase(BaseModel):
     year: Optional[int] = datetime.datetime.now().year
 
     class Config:
-        orm_mode: True
+        orm_mode = True
 
 
 class WelcomeEmail(EmailBase):
     alumnus_name: str
 
     class Config:
-        orm_mode: True
+        orm_mode = True
 
 
 class ContactEmail(BaseModel):
@@ -53,7 +54,29 @@ class TestimonialEmail(BaseModel):
     approve_url: str
 
     class Config:
-        orm_mode: True
+        orm_mode = True
+
+
+class PaymentReceiptEmail(EmailBase):
+    alumni_name: str
+    alumni_address1: str
+    alumni_address2: Optional[str]
+    city: str
+    state: str
+    pincode: str
+    country: str
+    invoice_number: str
+    membership_type: str
+
+    class Config:
+        orm_mode = True
+
+
+class BirthdayEmail(EmailBase):
+    name: str
+
+    class Config:
+        orm_mode = True
 
 
 @router.post("/email/welcome", status_code=status.HTTP_201_CREATED)
@@ -153,6 +176,67 @@ def send_testimonial_approval_message(
     }
 
     message.template_id = os.getenv("TESTIMONIAL_SUBMISSION_TEMPLATE")
+
+    try:
+        background_task.add_task(send_message, message)
+        return status.HTTP_202_ACCEPTED
+    except Exception:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+@router.post("/email/receipt", status_code=status.HTTP_201_CREATED)
+def send_payment_receipt(email: PaymentReceiptEmail, background_task: BackgroundTasks):
+    message = Mail(from_email=os.getenv("ADMIN_EMAIL"), to_emails=email.to_email)
+
+    message.add_cc(os.getenv("TREASURER_EMAIL"))
+
+    expiry_date = datetime.date.today() + datetime.timedelta(days=365)
+
+    message.dynamic_template_data = {
+        "alumni_name": email.alumni_name,
+        "alumni_address1": email.alumni_address1,
+        "alumni_address2": email.alumni_address2,
+        "city": email.city,
+        "state": email.state,
+        "pincode": email.pincode,
+        "country": email.country,
+        "invoice_number": email.invoice_number,
+        "invoice_date": datetime.date.today().strftime("%d-%b-%Y"),
+        "membership_type": email.membership_type,
+        "amount_paid": os.getenv("LIFETIME_MEMBERSHIP_AMOUNT")
+        if email.membership_type == "Lifetime"
+        else os.getenv("ANNUAL_MEMBERSHIP_AMOUNT"),
+        "validity": expiry_date.strftime("%d-%b-%Y")
+        if email.membership_type == "Annual"
+        else "Lifetime",
+        "year": email.year,
+    }
+
+    message.template_id = os.getenv("PAYMENT_RECEIPT_EMAIL_TEMPLATE")
+
+    try:
+        background_task.add_task(send_message, message)
+        return status.HTTP_202_ACCEPTED
+    except Exception:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+@router.post("/email/birthday", status_code=status.HTTP_201_CREATED)
+def send_birthday_message(email: BirthdayEmail, background_task: BackgroundTasks):
+    message = Mail(from_email=os.getenv("CONTACT_EMAIL"), to_emails=email.to_email)
+
+    birthday_message = return_random_message()
+
+    message.dynamic_template_data = {
+        "name": email.name,
+        "birthday_message": birthday_message,
+    }
+
+    message.template_id = os.getenv("BIRTHDAY_EMAIL_TEMPLATE")
 
     try:
         background_task.add_task(send_message, message)

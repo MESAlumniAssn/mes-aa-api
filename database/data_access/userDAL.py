@@ -84,6 +84,7 @@ class UserDAL:
 
         self.session.add(new_user)
         await self.session.commit()
+        return new_user.id
 
     async def check_if_email_exists(self, email: str):
         q = await self.session.execute(select(User).where(User.email == email))
@@ -161,6 +162,16 @@ class UserDAL:
             )
         )
 
+        return q.scalars().all()
+
+    async def update_email_subscription_status(self, email):
+        q = update(User).where(User.email == email)
+        q = q.values(email_subscription_status=False)
+
+        await self.session.execute(q)
+
+    async def get_alumni_birthdays(self) -> List[User]:
+        q = await self.session.execute(select(User))
         return q.scalars().all()
 
     # async def update_user_details(

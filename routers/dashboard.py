@@ -1,19 +1,33 @@
 import datetime
 from functools import reduce
+from typing import Optional
 
 from babel.numbers import format_decimal
 from fastapi import Depends
+from fastapi import Header
 from fastapi import HTTPException
 from fastapi import status
 
 from . import get_user_dal
 from . import router
 from database.data_access.userDAL import UserDAL
+from helpers.token_decoder import decode_auth_token
 
 
 # Endpoints
 @router.get("/alumniassn/dashboard/totals", status_code=status.HTTP_200_OK)
-async def generate_dashboard_information(userDAL: UserDAL = Depends(get_user_dal)):
+async def generate_dashboard_information(
+    userDAL: UserDAL = Depends(get_user_dal),
+    authorization: Optional[str] = Header(None),
+):
+    if not authorization:
+        return "Uh uh uh... You didn't say the magic word"
+
+    valid_token = decode_auth_token(authorization)
+
+    if not valid_token:
+        return "Uh uh uh... You didn't say the magic word"
+
     records = await userDAL.get_all_users()
 
     # Total registrations
@@ -123,8 +137,19 @@ async def generate_dashboard_information(userDAL: UserDAL = Depends(get_user_dal
     status_code=status.HTTP_200_OK,
 )
 async def get_all_active_members(
-    membership_type: str, payment_status: int, userDAL: UserDAL = Depends(get_user_dal)
+    membership_type: str,
+    payment_status: int,
+    userDAL: UserDAL = Depends(get_user_dal),
+    authorization: Optional[str] = Header(None),
 ):
+    if not authorization:
+        return "Uh uh uh... You didn't say the magic word"
+
+    valid_token = decode_auth_token(authorization)
+
+    if not valid_token:
+        return "Uh uh uh... You didn't say the magic word"
+
     records = await userDAL.get_registered_members(membership_type, payment_status)
 
     all_members = []
@@ -164,7 +189,17 @@ async def get_all_active_members(
 
 
 @router.get("/alumniassn/dashboard/expired_members", status_code=status.HTTP_200_OK)
-async def get_all_expired_memberships(userDal: UserDAL = Depends(get_user_dal)):
+async def get_all_expired_memberships(
+    userDal: UserDAL = Depends(get_user_dal),
+    authorization: Optional[str] = Header(None),
+):
+    if not authorization:
+        return "Uh uh uh... You didn't say the magic word"
+
+    valid_token = decode_auth_token(authorization)
+
+    if not valid_token:
+        return "Uh uh uh... You didn't say the magic word"
     try:
         records = await userDal.fetch_expired_members()
 
@@ -194,7 +229,18 @@ async def get_all_expired_memberships(userDal: UserDAL = Depends(get_user_dal)):
 
 
 @router.get("/alumniassn/dashboard/recently_renewed", status_code=status.HTTP_200_OK)
-async def get_recently_renewed_memberships(userDAL: UserDAL = Depends(get_user_dal)):
+async def get_recently_renewed_memberships(
+    userDAL: UserDAL = Depends(get_user_dal),
+    authorization: Optional[str] = Header(None),
+):
+
+    if not authorization:
+        return "Uh uh uh... You didn't say the magic word"
+
+    valid_token = decode_auth_token(authorization)
+
+    if not valid_token:
+        return "Uh uh uh... You didn't say the magic word"
     try:
         records = await userDAL.fetch_recently_renewed_memberships()
 

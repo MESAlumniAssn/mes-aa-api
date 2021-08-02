@@ -79,6 +79,7 @@ class User(Base):
     membership_certificate_url = Column(String(500))
     payment_mode = Column(String(1), default="O")
     manual_payment_notification = Column(Boolean, default=False)
+    email_subscription_status = Column(Boolean, default=True)
 
     def __repr__(self):
         return f"User({self.id}, {self.email}, {self.country})"

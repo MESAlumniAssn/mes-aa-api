@@ -37,7 +37,7 @@ class AdminDAL:
 
         to_encode.update({"exp": expire, "iat": datetime.utcnow()})
 
-        to_encode.update({"iat": datetime.utcnow()})
+        # to_encode.update({"iat": datetime.utcnow()})
         encoded_jwt = jwt.encode(
             to_encode, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM")
         )

@@ -13,6 +13,7 @@ from fastapi import status
 from fastapi import UploadFile
 from PIL import ExifTags
 from PIL import Image
+from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import get_user_dal
@@ -20,7 +21,12 @@ from . import router
 from database.data_access.userDAL import UserDAL
 from helpers.imagekit_init import initialize_imagekit
 
-# import cloudinary.uploader
+
+class EmailSubscription(BaseModel):
+    email: str
+
+    class Config:
+        orm_mode = True
 
 
 # This function is mainly for images clicked on phones where the exif data causes image rotation
@@ -186,7 +192,7 @@ async def create_user(
         image_url = upload_file_to_imagekit(str(alt_user_id), images)
 
     try:
-        await userDAL.create_user(
+        record = await userDAL.create_user(
             prefix.title(),
             first_name.title(),
             last_name.title(),
@@ -219,6 +225,7 @@ async def create_user(
         )
 
         return {
+            "id": record,
             "prefix": prefix,
             "first_name": first_name,
             "last_name": last_name,
@@ -357,3 +364,48 @@ async def update_user_manual_payment_notification_status(
     await userDAL.update_manual_payment_notification(email)
 
     return "Manual payment notification sent"
+
+
+@router.put("/email_subscription", status_code=status.HTTP_201_CREATED)
+async def email_subscription_status(
+    email: EmailSubscription, userDAL: UserDAL = Depends(get_user_dal)
+):
+    try:
+        await userDAL.update_email_subscription_status(email.email)
+
+        return {
+            "message": "If that email exists, it has been unsubscribed from our mailing list."
+        }
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not update subscription status",
+        )
+
+
+@router.get("/alumni/birthdays", status_code=status.HTTP_200_OK)
+async def alumni_birthdays(userDAL: UserDAL = Depends(get_user_dal)):
+    try:
+        birthday_list = []
+        birthday = {}
+        current_month = datetime.date.today().month
+        current_day = datetime.date.today().day
+
+        records = await userDAL.get_alumni_birthdays()
+
+        for record in records:
+            if (
+                record.birthday.month == current_month
+                and record.birthday.day == current_day
+            ):
+                birthday["name"] = record.first_name
+                birthday["email"] = record.email
+
+                birthday_list.append(birthday)
+
+        return birthday_list
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not fetch birthdays",
+        )
