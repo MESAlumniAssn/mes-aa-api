@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 from fastapi import BackgroundTasks
+from fastapi import Header
 from fastapi import HTTPException
 from fastapi import status
 from pydantic import BaseModel
@@ -226,7 +227,17 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
 
 
 @router.post("/email/birthday", status_code=status.HTTP_201_CREATED)
-def send_birthday_message(email: BirthdayEmail, background_task: BackgroundTasks):
+def send_birthday_message(
+    email: BirthdayEmail,
+    background_task: BackgroundTasks,
+    job_secret: Optional[str] = Header(None),
+):
+    if not job_secret:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    if job_secret != os.getenv("JOB_SECRET"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
     message = Mail(from_email=os.getenv("CONTACT_EMAIL"), to_emails=email.to_email)
 
     birthday_message = return_random_message()

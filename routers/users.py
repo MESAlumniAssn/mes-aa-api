@@ -8,6 +8,7 @@ from typing import Optional
 
 from fastapi import Depends
 from fastapi import Form
+from fastapi import Header
 from fastapi import HTTPException
 from fastapi import status
 from fastapi import UploadFile
@@ -384,7 +385,16 @@ async def email_subscription_status(
 
 
 @router.get("/alumni/birthdays", status_code=status.HTTP_200_OK)
-async def alumni_birthdays(userDAL: UserDAL = Depends(get_user_dal)):
+async def alumni_birthdays(
+    userDAL: UserDAL = Depends(get_user_dal),
+    job_secret: Optional[str] = Header(None),
+):
+    if not job_secret:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    if job_secret != os.getenv("JOB_SECRET"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
     try:
         birthday_list = []
         birthday = {}
@@ -401,7 +411,7 @@ async def alumni_birthdays(userDAL: UserDAL = Depends(get_user_dal)):
                 birthday["name"] = record.first_name
                 birthday["email"] = record.email
 
-                birthday_list.append(birthday)
+                birthday_list.append(birthday.copy())
 
         return birthday_list
     except Exception:

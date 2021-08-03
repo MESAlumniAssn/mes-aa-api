@@ -109,3 +109,16 @@ class Admin(Base):
 
     def __repr__(self) -> str:
         return f"Admin({self.id}, {self.email})"
+
+
+class Job(Base):
+
+    __tablename__ = "jobs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_name = Column(String(50), nullable=False)
+    job_id = Column(Integer, nullable=False)
+    job_last_runtime = Column(Date, nullable=False)
+
+    def __repr__(self):
+        return f"Job({self.job_name}, {self.job_last_runtime})"

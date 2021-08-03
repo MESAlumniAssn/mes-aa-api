@@ -1,4 +1,5 @@
 import datetime
+import os
 from functools import reduce
 from typing import Optional
 
@@ -7,11 +8,21 @@ from fastapi import Depends
 from fastapi import Header
 from fastapi import HTTPException
 from fastapi import status
+from pydantic import BaseModel
 
+from . import get_admin_dal
 from . import get_user_dal
 from . import router
+from database.data_access.adminDAL import AdminDAL
 from database.data_access.userDAL import UserDAL
 from helpers.token_decoder import decode_auth_token
+
+
+class JobsBase(BaseModel):
+    job_id: int
+
+    class Config:
+        orm_mode = True
 
 
 # Endpoints
@@ -271,4 +282,25 @@ async def get_recently_renewed_memberships(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not fetch renewed memberships",
+        )
+
+
+@router.put("/jobs", status_code=status.HTTP_201_CREATED)
+async def job_runtime(
+    job: JobsBase,
+    adminDAL: AdminDAL = Depends(get_admin_dal),
+    job_secret: Optional[str] = Header(None),
+):
+    if not job_secret:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    if job_secret != os.getenv("JOB_SECRET"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        await adminDAL.update_job_last_runtime_date(job.job_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not update job run date",
         )
