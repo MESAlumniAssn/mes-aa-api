@@ -15,7 +15,7 @@ from fastapi import UploadFile
 from PIL import ExifTags
 from PIL import Image
 from pydantic import BaseModel
-from sqlalchemy.exc import SQLAlchemyError
+from sentry_sdk import capture_exception
 
 from . import get_user_dal
 from . import router
@@ -251,7 +251,8 @@ async def create_user(
             "membership_type": membership_type,
             "alt_user_id": alt_user_id,
         }
-    except SQLAlchemyError:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="User registration failed",
@@ -260,111 +261,129 @@ async def create_user(
 
 @router.get("/user/{alt_id}", status_code=status.HTTP_200_OK)
 async def get_user_from_email(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
-    record = await userDAL.get_user_details_for_alt_id(alt_id)
-    if not record:
-        return None
+    try:
+        record = await userDAL.get_user_details_for_alt_id(alt_id)
+        if not record:
+            return None
 
-    membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
 
-    return {
-        "name": record.first_name + " " + record.last_name,
-        "email": record.email,
-        "membership_id": membership_id,
-    }
+        return {
+            "name": record.first_name + " " + record.last_name,
+            "email": record.email,
+            "membership_id": membership_id,
+        }
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.get("/card_details/{alt_user_id}", status_code=status.HTTP_200_OK)
 async def get_user_details(alt_user_id: str, userDAL: UserDAL = Depends(get_user_dal)):
-    record = await userDAL.get_user_details_for_alt_id(alt_user_id)
+    try:
+        record = await userDAL.get_user_details_for_alt_id(alt_user_id)
 
-    if not record:
-        return None
+        if not record:
+            return None
 
-    membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
 
-    return {
-        "name": record.prefix + ". " + record.first_name + " " + record.last_name,
-        "batch": record.duration_end,
-        "course_puc": record.course_puc,
-        "course_degree": record.course_degree,
-        "course_pg": record.course_pg,
-        "course_others": record.course_others,
-        "membership_id": membership_id,
-        "membership_start_date": record.date_created.strftime("%d-%b-%Y"),
-        "membership_end_date": record.membership_valid_upto.strftime("%d-%m-%Y")
-        if record.membership_type == "Annual"
-        else None,
-        "membership_type": record.membership_type,
-        "profile_url": record.profile_url,
-    }
+        return {
+            "name": record.prefix + ". " + record.first_name + " " + record.last_name,
+            "batch": record.duration_end,
+            "course_puc": record.course_puc,
+            "course_degree": record.course_degree,
+            "course_pg": record.course_pg,
+            "course_others": record.course_others,
+            "membership_id": membership_id,
+            "membership_start_date": record.date_created.strftime("%d-%b-%Y"),
+            "membership_end_date": record.membership_valid_upto.strftime("%d-%m-%Y")
+            if record.membership_type == "Annual"
+            else None,
+            "membership_type": record.membership_type,
+            "profile_url": record.profile_url,
+        }
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.get("/user/id/{email}", status_code=status.HTTP_200_OK)
 async def get_user_details_from_email(
     email: str, userDAL: UserDAL = Depends(get_user_dal)
 ):
-    record = await userDAL.check_if_email_exists(email.lower())
+    try:
+        record = await userDAL.check_if_email_exists(email.lower())
 
-    if not record:
-        return None
+        if not record:
+            return None
 
-    # Return nothing if the alumnus has chosen the online payment option
-    if record.payment_mode == "O" or record.payment_status:
-        return None
+        # Return nothing if the alumnus has chosen the online payment option
+        if record.payment_mode == "O" or record.payment_status:
+            return None
 
-    membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
 
-    alumnus_name = f"{record.prefix}. {record.first_name} {record.last_name}"
+        alumnus_name = f"{record.prefix}. {record.first_name} {record.last_name}"
 
-    return {
-        "membership_id": membership_id,
-        "membership_type": record.membership_type,
-        "first_name": record.first_name,
-        "full_name": alumnus_name,
-        "email": record.email,
-        "manual_payment_notification": record.manual_payment_notification,
-    }
+        return {
+            "membership_id": membership_id,
+            "membership_type": record.membership_type,
+            "first_name": record.first_name,
+            "full_name": alumnus_name,
+            "email": record.email,
+            "manual_payment_notification": record.manual_payment_notification,
+        }
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.get("/membership/{membership_id}", status_code=status.HTTP_200_OK)
 async def get_user_details_from_membership_d(
     membership_id: str, userDAL: UserDAL = Depends(get_user_dal)
 ):
-    user_id = int(membership_id.split("-")[3])
+    try:
+        user_id = int(membership_id.split("-")[3])
 
-    record = await userDAL.get_user_details_for_id(user_id)
+        record = await userDAL.get_user_details_for_id(user_id)
 
-    if not record:
-        return "That id does not exist"
+        if not record:
+            return "That id does not exist"
 
-    membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
 
-    return {
-        "user_id": record.id,
-        "membership_id": membership_id,
-        "name": record.prefix + ". " + record.first_name + " " + record.last_name,
-        "email": record.email,
-        "membership_type": record.membership_type,
-        "payment_status": record.payment_status,
-    }
+        return {
+            "user_id": record.id,
+            "membership_id": membership_id,
+            "name": record.prefix + ". " + record.first_name + " " + record.last_name,
+            "email": record.email,
+            "membership_type": record.membership_type,
+            "payment_status": record.payment_status,
+        }
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.put("/payment_status/{user_id}", status_code=status.HTTP_201_CREATED)
 async def update_user_payment_status(
     user_id: int, userDAL: UserDAL = Depends(get_user_dal)
 ):
-    await userDAL.update_payment_status(user_id)
+    try:
+        await userDAL.update_payment_status(user_id)
 
-    return "User details updated"
+        return "User details updated"
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.put("/manual_payment/notification/{email}", status_code=status.HTTP_201_CREATED)
 async def update_user_manual_payment_notification_status(
     email: str, userDAL: UserDAL = Depends(get_user_dal)
 ):
-    await userDAL.update_manual_payment_notification(email)
+    try:
+        await userDAL.update_manual_payment_notification(email)
 
-    return "Manual payment notification sent"
+        return "Manual payment notification sent"
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.put("/email_subscription", status_code=status.HTTP_201_CREATED)
@@ -374,10 +393,9 @@ async def email_subscription_status(
     try:
         await userDAL.update_email_subscription_status(email.email)
 
-        return {
-            "message": "If that email exists, it has been unsubscribed from our mailing list."
-        }
-    except Exception:
+        return {"message": "Unsubscribed successfully!"}
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not update subscription status",
@@ -414,7 +432,8 @@ async def alumni_birthdays(
                 birthday_list.append(birthday.copy())
 
         return birthday_list
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not fetch birthdays",

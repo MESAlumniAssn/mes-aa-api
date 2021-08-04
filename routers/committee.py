@@ -1,6 +1,7 @@
 from fastapi import Depends
 from fastapi import status
 from pydantic import BaseModel
+from sentry_sdk import capture_exception
 
 from . import get_committee_dal
 from . import router
@@ -19,4 +20,7 @@ class CommitteeMain(BaseModel):
 async def get_committee_members(
     committee_dal: CommitteeDAL = Depends(get_committee_dal),
 ):
-    return await committee_dal.fetch_all_committe_members()
+    try:
+        return await committee_dal.fetch_all_committe_members()
+    except Exception as e:
+        capture_exception(e)

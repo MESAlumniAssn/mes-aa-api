@@ -5,6 +5,7 @@ from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import status
 from pydantic import BaseModel
+from sentry_sdk import capture_exception
 
 from . import get_testimonial_dal
 from . import router
@@ -24,28 +25,34 @@ class TestimonialCreate(BaseModel):
 async def get_testimonias(
     testimonial_dal: TestimonialDAL = Depends(get_testimonial_dal),
 ):
-    results = await testimonial_dal.fetch_all_testimonials()
+    try:
+        results = await testimonial_dal.fetch_all_testimonials()
 
-    testimonials = []
-    testimonial_dict = {}
+        testimonials = []
+        testimonial_dict = {}
 
-    for result in results:
-        obj = result
-        testimonial_dict["name"] = obj.name
-        testimonial_dict["initial"] = obj.name[0].upper()
-        testimonial_dict["batch"] = obj.batch
-        testimonial_dict["message"] = obj.message
+        for result in results:
+            obj = result
+            testimonial_dict["name"] = obj.name
+            testimonial_dict["initial"] = obj.name[0].upper()
+            testimonial_dict["batch"] = obj.batch
+            testimonial_dict["message"] = obj.message
 
-        testimonials.append(testimonial_dict.copy())
+            testimonials.append(testimonial_dict.copy())
 
-    return random.sample(testimonials, k=6)
+        return random.sample(testimonials, k=6)
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.get("/testimonials/all", status_code=status.HTTP_200_OK)
 async def get_all_testimonias(
     testimonial_dal: TestimonialDAL = Depends(get_testimonial_dal),
 ):
-    return await testimonial_dal.fetch_all_testimonials()
+    try:
+        return await testimonial_dal.fetch_all_testimonials()
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.post("/testimonials/create", status_code=status.HTTP_201_CREATED)
@@ -63,7 +70,8 @@ async def create_new_testimonial(
             False,
             hash_value,
         )
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create testimonial"
         )
@@ -88,7 +96,8 @@ async def verify_testimonial(
             return "Testimonial verified"
         else:
             return "Could not verify this testimonial"
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error while verifying testimonial",

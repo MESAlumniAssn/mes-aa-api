@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from fastapi import status
 from pydantic import BaseModel
 from sendgrid.helpers.mail import Mail
+from sentry_sdk import capture_exception
 
 from . import router
 from helpers.random_messages import return_random_message
@@ -93,7 +94,8 @@ def send_welcome_message(email: WelcomeEmail, background_task: BackgroundTasks):
     try:
         background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
         )
@@ -116,7 +118,8 @@ def send_contact_message(email: ContactEmail, background_task: BackgroundTasks):
     try:
         background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
         )
@@ -155,7 +158,8 @@ def send_manual_payment_email(
         background_task.add_task(send_message, message)
         # send_message(message)
         return status.HTTP_202_ACCEPTED
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
         )
@@ -181,7 +185,8 @@ def send_testimonial_approval_message(
     try:
         background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
         )
@@ -220,7 +225,8 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
     try:
         background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
         )
@@ -252,7 +258,8 @@ def send_birthday_message(
     try:
         background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
-    except Exception:
+    except Exception as e:
+        capture_exception(e)
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
         )

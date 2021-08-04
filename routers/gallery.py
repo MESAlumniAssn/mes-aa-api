@@ -1,4 +1,5 @@
 from fastapi import status
+from sentry_sdk import capture_exception
 
 from . import router
 from helpers.imagekit_init import initialize_imagekit
@@ -18,29 +19,31 @@ async def get_images_for_gallery():
     #     prefix="MES-AA/main_gallery", type="upload", context=True, max_results=100
     # )
 
-    transformed_files = []
-    file_obj = {}
+    try:
+        transformed_files = []
+        file_obj = {}
 
-    imagekit = initialize_imagekit()
+        imagekit = initialize_imagekit()
 
-    files = imagekit.list_files({"path": "MES-AA/Gallery", "limit": 100})
+        files = imagekit.list_files({"path": "MES-AA/Gallery", "limit": 100})
 
-    for file in files["response"]:
-        file_url = imagekit.url(
-            {
-                "src": file["url"],
-                "transformation": [{"quality": "90"}],
-            }
-        )
+        for file in files["response"]:
+            file_url = imagekit.url(
+                {
+                    "src": file["url"],
+                    "transformation": [{"quality": "90"}],
+                }
+            )
 
-        file_url = file_url.split("?")
+            file_url = file_url.split("?")
 
-        file_obj["url"] = file_url[0]
-        file_obj["fileId"] = file["fileId"]
-        file_obj["height"] = file["height"]
-        file_obj["width"] = file["width"]
+            file_obj["url"] = file_url[0]
+            file_obj["fileId"] = file["fileId"]
+            file_obj["height"] = file["height"]
+            file_obj["width"] = file["width"]
 
-        transformed_files.append(file_obj.copy())
-
-    return transformed_files[::-1]
-    # return await gallery_DAL.fetch_all_images_for_gallery()
+            transformed_files.append(file_obj.copy())
+        return transformed_files[::-1]
+        # return await gallery_DAL.fetch_all_images_for_gallery()
+    except Exception as e:
+        capture_exception(e)

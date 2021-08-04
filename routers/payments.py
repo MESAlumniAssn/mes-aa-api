@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from fastapi import status
 from pydantic import BaseModel
 from razorpay.errors import SignatureVerificationError
+from sentry_sdk import capture_exception
 
 from . import get_user_dal
 from . import router
@@ -33,18 +34,21 @@ client = razorpay.Client(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY_KEY_S
 
 @router.post("/orders", status_code=status.HTTP_201_CREATED)
 async def create_order(order: Order):
-    client = razorpay.Client(
-        auth=(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY_KEY_SECRET"))
-    )
+    try:
+        client = razorpay.Client(
+            auth=(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY_KEY_SECRET"))
+        )
 
-    order_data = {
-        "amount": order.amount,
-        "currency": order.currency,
-        "receipt": order.receipt,
-        "notes": order.notes,
-    }
+        order_data = {
+            "amount": order.amount,
+            "currency": order.currency,
+            "receipt": order.receipt,
+            "notes": order.notes,
+        }
 
-    return client.order.create(order_data)
+        return client.order.create(order_data)
+    except Exception as e:
+        capture_exception(e)
 
 
 @router.post("/verification", status_code=status.HTTP_201_CREATED)
@@ -69,6 +73,7 @@ async def verify_payment(
         if verification_status is None:  # success
             return {"status": verification_status}
     except SignatureVerificationError:
+        capture_exception(SignatureVerificationError)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Payment verification failed",

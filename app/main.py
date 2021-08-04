@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+import sentry_sdk
 from fastapi import FastAPI
 from database.db import engine, Base
 from routers import (
@@ -18,6 +19,11 @@ from routers import (
     email_messages,
 )
 from starlette.middleware.cors import CORSMiddleware
+
+sentry_sdk.init(
+    os.getenv("SENTRY_DSN"),
+    traces_sample_rate=float(os.getenv("SENTRY_SAMPLE_RATE")),
+)
 
 app = FastAPI(docs_url=None, redoc_url=None)
 
