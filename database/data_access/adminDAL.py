@@ -64,6 +64,10 @@ class AdminDAL:
 
         return user
 
+    async def fetch_status_of_all_jobs(self):
+        q = await self.session.execute(select(Job).order_by(Job.job_id))
+        return q.scalars().all()
+
     async def update_job_last_runtime_date(self, job_id: int):
         q = update(Job).where(Job.job_id == job_id)
         q = q.values(job_last_runtime=date.today())

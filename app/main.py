@@ -19,6 +19,7 @@ from routers import (
     email_messages,
 )
 from starlette.middleware.cors import CORSMiddleware
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
 sentry_sdk.init(
     os.getenv("SENTRY_DSN"),
@@ -36,6 +37,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SentryAsgiMiddleware)
 
 
 @app.on_event("startup")

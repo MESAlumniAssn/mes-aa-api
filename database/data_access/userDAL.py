@@ -3,6 +3,7 @@ from typing import List
 from typing import Optional
 
 from sqlalchemy import and_
+from sqlalchemy import delete
 from sqlalchemy import update
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
@@ -86,6 +87,9 @@ class UserDAL:
         await self.session.commit()
         return new_user.id
 
+    async def delete_temp_user(self, alt_id: str):
+        await self.session.execute(delete(User).where(User.alt_user_id == alt_id))
+
     async def check_if_email_exists(self, email: str):
         q = await self.session.execute(select(User).where(User.email == email))
         return q.scalars().first()
@@ -120,10 +124,12 @@ class UserDAL:
 
     async def get_registered_members(self, member_type: str, payment) -> List[User]:
         q = await self.session.execute(
-            select(User).where(
+            select(User)
+            .where(
                 User.membership_type == member_type,
                 User.payment_status == bool(payment),
             )
+            .order_by(User.id.desc())
         )
         return q.scalars().all()
 

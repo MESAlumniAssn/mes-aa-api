@@ -21,10 +21,19 @@ from . import get_user_dal
 from . import router
 from database.data_access.userDAL import UserDAL
 from helpers.imagekit_init import initialize_imagekit
+from helpers.token_decoder import decode_auth_token
 
 
 class EmailSubscription(BaseModel):
     email: str
+
+    class Config:
+        orm_mode = True
+
+
+class UpdatePaymentStatus(BaseModel):
+    authorization_token: str
+    user_id: int
 
     class Config:
         orm_mode = True
@@ -259,6 +268,18 @@ async def create_user(
         )
 
 
+@router.delete("/user/delete/{alt_id}", status_code=status.HTTP_200_OK)
+async def delete_temp_user(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
+    try:
+        await userDAL.delete_temp_user(alt_id)
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not delete the temporary user",
+        )
+
+
 @router.get("/user/{alt_id}", status_code=status.HTTP_200_OK)
 async def get_user_from_email(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
     try:
@@ -338,8 +359,18 @@ async def get_user_details_from_email(
 
 @router.get("/membership/{membership_id}", status_code=status.HTTP_200_OK)
 async def get_user_details_from_membership_d(
-    membership_id: str, userDAL: UserDAL = Depends(get_user_dal)
+    membership_id: str,
+    userDAL: UserDAL = Depends(get_user_dal),
+    authorization: Optional[str] = Header(None),
 ):
+    if not authorization:
+        return "Uh uh uh... You didn't say the magic word"
+
+    valid_token = decode_auth_token(authorization)
+
+    if not valid_token:
+        return "Uh uh uh... You didn't say the magic word"
+
     try:
         user_id = int(membership_id.split("-")[3])
 
@@ -355,6 +386,12 @@ async def get_user_details_from_membership_d(
             "membership_id": membership_id,
             "name": record.prefix + ". " + record.first_name + " " + record.last_name,
             "email": record.email,
+            "address1": record.address1,
+            "address2": record.address2,
+            "city": record.city,
+            "state": record.state,
+            "pincode": record.pincode,
+            "country": record.country,
             "membership_type": record.membership_type,
             "payment_status": record.payment_status,
         }
@@ -362,12 +399,22 @@ async def get_user_details_from_membership_d(
         capture_exception(e)
 
 
-@router.put("/payment_status/{user_id}", status_code=status.HTTP_201_CREATED)
+@router.put("/payment_status", status_code=status.HTTP_201_CREATED)
 async def update_user_payment_status(
-    user_id: int, userDAL: UserDAL = Depends(get_user_dal)
+    status: UpdatePaymentStatus,
+    userDAL: UserDAL = Depends(get_user_dal),
 ):
+
+    if not status.authorization_token:
+        return "Uh uh uh... You didn't say the magic word"
+
+    valid_token = decode_auth_token(status.authorization_token)
+
+    if not valid_token:
+        return "Uh uh uh... You didn't say the magic word"
+
     try:
-        await userDAL.update_payment_status(user_id)
+        await userDAL.update_payment_status(status.user_id)
 
         return "User details updated"
     except Exception as e:

@@ -299,6 +299,37 @@ async def get_recently_renewed_memberships(
         )
 
 
+@router.get("/jobs", status_code=status.HTTP_200_OK)
+async def job_status(
+    adminDAL: AdminDAL = Depends(get_admin_dal),
+):
+    jobs = []
+    job_obj = {}
+
+    try:
+        records = await adminDAL.fetch_status_of_all_jobs()
+
+        for job in records:
+            job_obj["name"] = job.job_name.title()
+            job_obj["last_run_date"] = job.job_last_runtime
+            job_obj["status"] = (
+                "Success"
+                if datetime.date.today() == job.job_last_runtime
+                else "Failure"
+            )
+
+            jobs.append(job_obj.copy())
+
+        return jobs
+
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not fetch job details",
+        )
+
+
 @router.put("/jobs", status_code=status.HTTP_201_CREATED)
 async def job_runtime(
     job: JobsBase,
