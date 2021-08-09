@@ -229,6 +229,8 @@ async def get_all_expired_memberships(
         expired_memberships = []
         member = {}
 
+        renewal_link = os.getenv("SITE_DOMAIN")
+
         for record in records:
             member["id"] = record.id
             member[
@@ -240,6 +242,9 @@ async def get_all_expired_memberships(
             member["email"] = record.email
             member["id_card_url"] = record.id_card_url
             member["membership_certificate_url"] = record.membership_certificate_url
+            member["renewal_link"] = (
+                renewal_link + f"/renewal/{record.alt_user_id}-{record.renewal_hash}"
+            )
 
             expired_memberships.append(member.copy())
 

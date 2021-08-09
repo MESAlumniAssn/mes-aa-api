@@ -2,6 +2,7 @@ import datetime
 import os
 from typing import Optional
 
+from dateutil.relativedelta import relativedelta
 from fastapi import BackgroundTasks
 from fastapi import Header
 from fastapi import HTTPException
@@ -69,6 +70,7 @@ class PaymentReceiptEmail(EmailBase):
     country: str
     invoice_number: str
     membership_type: str
+    renewal_date: Optional[datetime.date] = None
 
     class Config:
         orm_mode = True
@@ -76,6 +78,23 @@ class PaymentReceiptEmail(EmailBase):
 
 class BirthdayEmail(EmailBase):
     name: str
+
+    class Config:
+        orm_mode = True
+
+
+class RenewalEmail(EmailBase):
+    name: str
+    days: int
+    renewal_url: str
+
+    class Config:
+        orm_mode = True
+
+
+class ExpiredMembershipEmail(EmailBase):
+    name: str
+    renewal_url: str
 
     class Config:
         orm_mode = True
@@ -131,7 +150,7 @@ def send_manual_payment_email(
 ):
     message = Mail(from_email=os.getenv("CONTACT_EMAIL"), to_emails=email.to_email)
 
-    expiry_date = datetime.date.today() + datetime.timedelta(days=365)
+    expiry_date = datetime.date.today() + relativedelta(years=1)
 
     message.dynamic_template_data = {
         "alumni_name": email.alumni_name,
@@ -197,8 +216,18 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
     message = Mail(from_email=os.getenv("ADMIN_EMAIL"), to_emails=email.to_email)
 
     message.add_cc(os.getenv("TREASURER_EMAIL"))
+    expiry_date = datetime.date.today() + relativedelta(years=1)
 
-    expiry_date = datetime.date.today() + datetime.timedelta(days=365)
+    # renewal_date is sent int payload only for renewals
+    # during registration, we just add one year to the current date
+    if email.renewal_date:
+        validity = email.renewal_date.strftime("%d-%b-%Y")
+    else:
+        validity = (
+            expiry_date.strftime("%d-%b-%Y")
+            if email.membership_type == "Annual"
+            else "Lifetime"
+        )
 
     message.dynamic_template_data = {
         "alumni_name": email.alumni_name,
@@ -214,16 +243,15 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
         "amount_paid": os.getenv("LIFETIME_MEMBERSHIP_AMOUNT")
         if email.membership_type == "Lifetime"
         else os.getenv("ANNUAL_MEMBERSHIP_AMOUNT"),
-        "validity": expiry_date.strftime("%d-%b-%Y")
-        if email.membership_type == "Annual"
-        else "Lifetime",
+        "validity": validity,
         "year": email.year,
     }
 
     message.template_id = os.getenv("PAYMENT_RECEIPT_EMAIL_TEMPLATE")
 
     try:
-        background_task.add_task(send_message, message)
+        send_message(message)
+        # background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
     except Exception as e:
         capture_exception(e)
@@ -232,6 +260,7 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
         )
 
 
+# Job related
 @router.post("/email/birthday", status_code=status.HTTP_201_CREATED)
 def send_birthday_message(
     email: BirthdayEmail,
@@ -254,6 +283,65 @@ def send_birthday_message(
     }
 
     message.template_id = os.getenv("BIRTHDAY_EMAIL_TEMPLATE")
+
+    try:
+        background_task.add_task(send_message, message)
+        return status.HTTP_202_ACCEPTED
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+# Job related
+@router.post("/email/renewal", status_code=status.HTTP_201_CREATED)
+def send_renewal_notification(
+    email: RenewalEmail,
+    background_task: BackgroundTasks,
+    job_secret: Optional[str] = Header(None),
+):
+    if not job_secret:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    if job_secret != os.getenv("JOB_SECRET"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    message = Mail(from_email=os.getenv("ADMIN_EMAIL"), to_emails=email.to_email)
+
+    message.dynamic_template_data = {
+        "name": email.name,
+        "days": email.days,
+        "day": email.days == 1,
+        "renewal_url": email.renewal_url,
+    }
+
+    message.template_id = os.getenv("RENEWAL_EMAIL_TEMPLATE")
+
+    try:
+        background_task.add_task(send_message, message)
+        return status.HTTP_202_ACCEPTED
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+# Partial job related. Hence skipping the secret
+@router.post("/email/expired_membership", status_code=status.HTTP_201_CREATED)
+def send_expiry_notification(
+    email: ExpiredMembershipEmail, background_task: BackgroundTasks
+):
+
+    message = Mail(from_email=os.getenv("ADMIN_EMAIL"), to_emails=email.to_email)
+
+    message.dynamic_template_data = {
+        "name": email.name,
+        "renewal_url": email.renewal_url,
+    }
+
+    message.template_id = os.getenv("MEMBERSHIP_EXPIRED_EMAIL_TEMPLATE")
 
     try:
         background_task.add_task(send_message, message)

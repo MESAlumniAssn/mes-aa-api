@@ -17,6 +17,7 @@ from routers import (
     admin,
     payments,
     email_messages,
+    renewal,
 )
 from starlette.middleware.cors import CORSMiddleware
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
@@ -56,3 +57,4 @@ app.include_router(admin.router)
 app.include_router(payments.router)
 app.include_router(email_messages.router)
 app.include_router(index.router)
+app.include_router(renewal.router)

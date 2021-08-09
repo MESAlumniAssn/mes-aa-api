@@ -73,6 +73,7 @@ class User(Base):
     membership_valid_upto = Column(Date)
     membership_expired = Column(Boolean, default=False)
     date_renewed = Column(Date)
+    renewal_hash = Column(String(200))
     alt_user_id = Column(String(50))
     profile_url = Column(String(500))
     id_card_url = Column(String(500))
@@ -95,6 +96,7 @@ class FamousAlumni(Base):
     category = Column(String(100), index=True)
     description = Column(String(200))
     batch = Column(String(4))
+    image = Column(String(500))
 
     def __repr__(self):
         return f"FamousAlumni({self.id}, {self.name})"

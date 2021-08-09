@@ -6,6 +6,7 @@ import uuid
 from typing import List
 from typing import Optional
 
+from dateutil.relativedelta import relativedelta
 from fastapi import Depends
 from fastapi import Form
 from fastapi import Header
@@ -157,6 +158,7 @@ async def create_user(
     other_interests: str = Form(" "),
     membership_type: str = Form(...),
     payment_mode: str = Form(...),
+    payment_status: bool = Form(...),
     images: Optional[List[UploadFile]] = Form([]),
     userDAL: UserDAL = Depends(get_user_dal),
 ):
@@ -176,8 +178,8 @@ async def create_user(
     alt_user_id = uuid.uuid4()
 
     # This field is required for annual memberships only
-    membership_valid_upto = (
-        datetime.date.today() + datetime.timedelta(days=365)
+    membership_valid_up_to = (
+        datetime.date.today() + relativedelta(years=1)
         if membership_type == "Annual"
         else None
     )
@@ -226,8 +228,9 @@ async def create_user(
             other_interests,
             membership_type,
             payment_mode,
+            payment_status,
             str(alt_user_id),
-            membership_valid_upto,
+            membership_valid_up_to,
             image_url,
             id_card_url,
             membership_certificate_url,
