@@ -159,6 +159,7 @@ async def create_user(
     membership_type: str = Form(...),
     payment_mode: str = Form(...),
     payment_status: bool = Form(...),
+    razorpay_order_id: str = Form(...),
     images: Optional[List[UploadFile]] = Form([]),
     userDAL: UserDAL = Depends(get_user_dal),
 ):
@@ -229,6 +230,7 @@ async def create_user(
             membership_type,
             payment_mode,
             payment_status,
+            razorpay_order_id,
             str(alt_user_id),
             membership_valid_up_to,
             image_url,
@@ -271,16 +273,16 @@ async def create_user(
         )
 
 
-@router.delete("/user/delete/{alt_id}", status_code=status.HTTP_200_OK)
-async def delete_temp_user(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
-    try:
-        await userDAL.delete_temp_user(alt_id)
-    except Exception as e:
-        capture_exception(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not delete the temporary user",
-        )
+# @router.delete("/user/delete/{alt_id}", status_code=status.HTTP_200_OK)
+# async def delete_temp_user(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
+#     try:
+#         await userDAL.delete_temp_user(alt_id)
+#     except Exception as e:
+#         capture_exception(e)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Could not delete the temporary user",
+#         )
 
 
 @router.get("/user/{alt_id}", status_code=status.HTTP_200_OK)
