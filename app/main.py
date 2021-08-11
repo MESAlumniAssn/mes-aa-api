@@ -29,7 +29,7 @@ sentry_sdk.init(
 
 app = FastAPI(docs_url=None, redoc_url=None)
 
-origins = [os.getenv("CORS_ORIGIN_SERVER")]
+origins = os.getenv("CORS_ORIGIN_SERVER").split(",")
 
 app.add_middleware(
     CORSMiddleware,
