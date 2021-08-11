@@ -2,7 +2,7 @@ import random
 
 birthday_wishes = [
     "We wish you an amazing year that ends with accomplishing all the great goals that you have set!",
-    "The warmest wishes to a great member of our team. May your special day be full of happiness, fun and cheer!",
+    "The warmest wishes to a great member of our alumni family. May your special day be full of happiness, fun and cheer!",
     "Today is a great day to get started on another 365-day journey. It’s a fresh start to new beginnings, new hopes, and great endeavors. Besides, be sure to have adventures along the way. Wishing you the best of today and every day in the future!",
     "Hoping that this birthday is the start of an amazing year where you accomplish every goal and shatter every record there is to break. Enjoy your birthday!",
     "May this birthday bring the milestones you have to achieve, dreams you have to fulfill, and horizons you have to conquer. Wishing you a happy birthday from every member of our team!",

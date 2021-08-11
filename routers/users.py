@@ -473,6 +473,9 @@ async def alumni_birthdays(
 
         records = await userDAL.get_alumni_birthdays()
 
+        if not records:
+            return None
+
         for record in records:
             if (
                 record.birthday.month == current_month
