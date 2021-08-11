@@ -2,7 +2,7 @@ from fastapi import status
 from sentry_sdk import capture_exception
 
 from . import router
-from helpers.imagekit_init import initialize_imagekit
+from helpers.imagekit_init import initialize_imagekit_prod
 
 # import cloudinary.api
 
@@ -23,7 +23,7 @@ async def get_images_for_gallery():
         transformed_files = []
         file_obj = {}
 
-        imagekit = initialize_imagekit()
+        imagekit = initialize_imagekit_prod()
 
         files = imagekit.list_files({"path": "MES-AA/Gallery", "limit": 100})
 
