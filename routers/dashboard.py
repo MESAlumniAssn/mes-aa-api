@@ -52,7 +52,13 @@ async def generate_dashboard_information(
         )
 
         # Pending registrations
-        pending_registrations = int(total_registrations) - int(successful_registrations)
+        pending_registrations = len(
+            [
+                record
+                for record in records
+                if not record.payment_status and not record.membership_expired
+            ]
+        )
 
         # Total life members
         life_members = len(
@@ -77,7 +83,9 @@ async def generate_dashboard_information(
             [
                 record
                 for record in records
-                if record.membership_type == "Annual" and record.payment_status
+                if record.membership_type == "Annual"
+                and record.payment_status
+                and not record.membership_expired
             ]
         )
 
@@ -86,7 +94,20 @@ async def generate_dashboard_information(
             [
                 record
                 for record in records
-                if record.membership_type == "Annual" and not record.payment_status
+                if record.membership_type == "Annual"
+                and not record.payment_status
+                and not record.membership_expired
+            ]
+        )
+
+        # Total pending annual members
+        expired_memberships = len(
+            [
+                record
+                for record in records
+                if record.membership_type == "Annual"
+                and not record.payment_status
+                and record.membership_expired
             ]
         )
 
@@ -145,6 +166,7 @@ async def generate_dashboard_information(
             "pending_annual_members": format_decimal(
                 pending_annual_members, locale="en_IN"
             ),
+            "expired_memberships": format_decimal(expired_memberships, locale="en_IN"),
         }
     except Exception as e:
         capture_exception(e)
