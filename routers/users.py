@@ -239,6 +239,12 @@ async def create_user(
             paid_amount,
         )
 
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Registration failed",
+            )
+
         return {
             "id": record,
             "prefix": prefix,
@@ -328,6 +334,21 @@ async def get_user_details(alt_user_id: str, userDAL: UserDAL = Depends(get_user
             "membership_type": record.membership_type,
             "profile_url": record.profile_url,
         }
+    except Exception as e:
+        capture_exception(e)
+
+
+@router.get("/user/get/{email}", status_code=status.HTTP_200_OK)
+async def check_for_existing_email(
+    email: str, userDAL: UserDAL = Depends(get_user_dal)
+):
+    try:
+        email_on_record = await userDAL.check_if_email_exists(email.lower())
+
+        if email_on_record:
+            return f"A registration for {email_on_record.email} already exists. Please use a different email address."
+
+        return None
     except Exception as e:
         capture_exception(e)
 
