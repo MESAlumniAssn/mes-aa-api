@@ -21,6 +21,7 @@ class Renewal(BaseModel):
     payment_amount: int
     membership_valid_upto: str
     membership_certificate_url: Optional[str]
+    payment_mode: str
 
     class Config:
         orm_mode = True
@@ -28,6 +29,13 @@ class Renewal(BaseModel):
 
 class RenewalHash(BaseModel):
     email: str
+
+    class Config:
+        orm_mode = True
+
+
+class ClearRenewalHash(BaseModel):
+    id: str
 
     class Config:
         orm_mode = True
@@ -96,18 +104,12 @@ async def renewal_details(renewal_hash: str, userDAL: UserDAL = Depends(get_user
         )
 
 
+# Partially job related
 @router.put("/membership_renewal", status_code=status.HTTP_201_CREATED)
 async def renew_annual_membership(
     membership_renewal: Renewal,
     userDAL: UserDAL = Depends(get_user_dal),
-    job_secret: Optional[str] = Header(None),
 ):
-    if not job_secret:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-
-    if job_secret != os.getenv("JOB_SECRET"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-
     date_renewed = datetime.date.today()
 
     # Convert date to required format
@@ -123,12 +125,27 @@ async def renew_annual_membership(
             valid_up_to_date,
             membership_renewal.membership_certificate_url,
             date_renewed,
+            membership_renewal.payment_mode,
         )
     except Exception as e:
         capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not update renewal details",
+        )
+
+
+@router.put("/renewal_hash/clear", status_code=status.HTTP_201_CREATED)
+async def clear_hash_after_online_payment(
+    renewal_hash: ClearRenewalHash, userDAL: UserDAL = Depends(get_user_dal)
+):
+    try:
+        await userDAL.clear_renewal_hash(renewal_hash.id)
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not clear hash",
         )
 
 

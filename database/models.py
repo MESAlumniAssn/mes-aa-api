@@ -125,3 +125,19 @@ class Job(Base):
 
     def __repr__(self):
         return f"Job({self.job_name}, {self.job_last_runtime})"
+
+
+class Event(Base):
+
+    __tablename__ = "events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(500), nullable=False)
+    description = Column(String(2000), nullable=False)
+    venue = Column(String(100), nullable=False)
+    event_date = Column(Date, nullable=False)
+    event_time = Column(String(10), nullable=False)
+    chief_guest = Column(String(500))
+
+    def __repr__(self):
+        return f"Event({self.name})"

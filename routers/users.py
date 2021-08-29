@@ -33,7 +33,7 @@ class EmailSubscription(BaseModel):
 
 
 class UpdatePaymentStatus(BaseModel):
-    authorization_token: str
+    membership_type: str
     user_id: int
 
     class Config:
@@ -429,18 +429,28 @@ async def get_user_details_from_membership_d(
 async def update_user_payment_status(
     status: UpdatePaymentStatus,
     userDAL: UserDAL = Depends(get_user_dal),
+    authorization: Optional[str] = Header(None),
 ):
 
-    if not status.authorization_token:
+    if not authorization:
         return "Uh uh uh... You didn't say the magic word"
 
-    valid_token = decode_auth_token(status.authorization_token)
+    valid_token = decode_auth_token(authorization)
 
     if not valid_token:
         return "Uh uh uh... You didn't say the magic word"
 
     try:
-        await userDAL.update_payment_status(status.user_id)
+        if status.membership_type == "Lifetime":
+            await userDAL.update_payment_status_lifetime(status.user_id)
+
+        today = datetime.date.today()
+        annual_membership_validity = today + relativedelta(years=1)
+
+        if status.membership_type == "Annual":
+            await userDAL.update_payment_status_annual(
+                status.user_id, today, annual_membership_validity
+            )
 
         return "User details updated"
     except Exception as e:

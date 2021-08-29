@@ -111,9 +111,21 @@ class UserDAL:
         q = await self.session.execute(select(User).where(User.id == user_id))
         return q.scalars().first()
 
-    async def update_payment_status(self, user_id: int) -> None:
+    async def update_payment_status_lifetime(self, user_id: int) -> None:
         q = update(User).where(User.id == user_id)
         q = q.values(payment_status=True)
+
+        await self.session.execute(q)
+
+    async def update_payment_status_annual(
+        self, user_id: int, today: datetime.date, membership_validity: datetime.date
+    ) -> None:
+        q = update(User).where(User.id == user_id)
+        q = q.values(payment_status=True)
+        q = q.values(membership_expired=False)
+        q = q.values(date_renewed=today)
+        q = q.values(membership_valid_upto=membership_validity)
+        q = q.values(renewal_hash=None)
 
         await self.session.execute(q)
 
@@ -208,14 +220,20 @@ class UserDAL:
         membership_valid_upto: datetime.date,
         membership_certificate_url: Optional[str],
         date_renewed: datetime.date,
+        payment_mode,
     ) -> None:
         q = update(User).where(User.email == email)
         q = q.values(membership_type=membership_type)
         q = q.values(payment_amount=payment_amount)
-        q = q.values(membership_valid_upto=membership_valid_upto)
+        q = q.values(
+            membership_valid_upto=membership_valid_upto
+            if membership_type == "Annual"
+            else None
+        )
         q = q.values(membership_certificate_url=membership_certificate_url)
         q = q.values(membership_expired=False)
         q = q.values(date_renewed=date_renewed)
+        q = q.values(payment_status=payment_mode == "O")
 
         await self.session.execute(q)
         return email
@@ -251,11 +269,25 @@ class UserDAL:
         await self.session.execute(q)
         return renewal_hash
 
+    async def clear_renewal_hash(self, id: str):
+        q = update(User).where(User.alt_user_id == id)
+
+        q = q.values(renewal_hash=None)
+
+        await self.session.execute(q)
+
     async def mark_membership_as_expired(self, email: str):
         q = update(User).where(User.email == email)
         q = q.values(payment_status=False, membership_expired=True)
 
         await self.session.execute(q)
+
+    async def get_all_users_subscribed_to_emails(self):
+        q = await self.session.execute(
+            select(User).where(User.email_subscription_status == True)
+        )
+
+        return q.scalars().all()
 
     # async def update_user_details(
     #     self,

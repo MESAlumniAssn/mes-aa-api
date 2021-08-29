@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from database.data_access.adminDAL import AdminDAL
 from database.data_access.committeDAL import CommitteeDAL
+from database.data_access.eventDAL import EventDAL
 from database.data_access.famous_alumniDAL import FamousAlumniDAL
 from database.data_access.testimonialDAL import TestimonialDAL
 from database.data_access.userDAL import UserDAL
@@ -39,3 +40,9 @@ async def get_admin_dal():
     async with async_session() as session:
         async with session.begin():
             yield AdminDAL(session)
+
+
+async def get_event_dal():
+    async with async_session() as session:
+        async with session.begin():
+            yield EventDAL(session)

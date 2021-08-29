@@ -7,11 +7,14 @@ from fastapi import BackgroundTasks
 from fastapi import Header
 from fastapi import HTTPException
 from fastapi import status
+from fastapi.param_functions import Depends
 from pydantic import BaseModel
 from sendgrid.helpers.mail import Mail
 from sentry_sdk import capture_exception
 
+from . import get_user_dal
 from . import router
+from database.data_access.userDAL import UserDAL
 from helpers.random_messages import return_random_message
 from helpers.sendgrid_init import send_message
 
@@ -95,6 +98,17 @@ class RenewalEmail(EmailBase):
 class ExpiredMembershipEmail(EmailBase):
     name: str
     renewal_url: str
+
+    class Config:
+        orm_mode = True
+
+
+class EventNotificationEmail(BaseModel):
+    event_name: str
+    event_date: datetime.date
+    event_time: str
+    venue: str
+    chief_guest: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -342,6 +356,38 @@ def send_expiry_notification(
     }
 
     message.template_id = os.getenv("MEMBERSHIP_EXPIRED_EMAIL_TEMPLATE")
+
+    try:
+        background_task.add_task(send_message, message)
+        return status.HTTP_202_ACCEPTED
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+@router.post("/email/events", status_code=status.HTTP_201_CREATED)
+async def send_event_notification(
+    email: EventNotificationEmail,
+    background_task: BackgroundTasks,
+    userDAL: UserDAL = Depends(get_user_dal),
+):
+    records = await userDAL.get_all_users_subscribed_to_emails()
+
+    emails = [record.email for record in records]
+
+    message = Mail(from_email=os.getenv("ADMIN_EMAIL"), to_emails=emails)
+
+    message.dynamic_template_data = {
+        "event_name": email.event_name,
+        "event_date": email.event_date.strftime("%d %B %Y"),
+        "event_time": email.event_time,
+        "venue": email.venue,
+        "chief_guest": email.chief_guest,
+    }
+
+    message.template_id = os.getenv("EVENT_NOTIFICATION_EMAIL_TEMPLATE")
 
     try:
         background_task.add_task(send_message, message)
