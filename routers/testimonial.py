@@ -22,7 +22,7 @@ class TestimonialCreate(BaseModel):
 
 
 @router.get("/testimonials", status_code=status.HTTP_200_OK)
-async def get_testimonias(
+async def get_testimonials(
     testimonial_dal: TestimonialDAL = Depends(get_testimonial_dal),
 ):
     try:
@@ -46,7 +46,7 @@ async def get_testimonias(
 
 
 @router.get("/testimonials/all", status_code=status.HTTP_200_OK)
-async def get_all_testimonias(
+async def get_all_testimonials(
     testimonial_dal: TestimonialDAL = Depends(get_testimonial_dal),
 ):
     try:
