@@ -8,6 +8,7 @@ from fastapi import Depends
 from fastapi import Header
 from fastapi import HTTPException
 from fastapi import status
+from jose.exceptions import ExpiredSignatureError
 from pydantic import BaseModel
 from sentry_sdk import capture_exception
 
@@ -33,12 +34,18 @@ async def generate_dashboard_information(
     authorization: Optional[str] = Header(None),
 ):
     if not authorization:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     valid_token = decode_auth_token(authorization)
 
     if not valid_token:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     try:
         records = await userDAL.get_all_users()
@@ -168,8 +175,11 @@ async def generate_dashboard_information(
             ),
             "expired_memberships": format_decimal(expired_memberships, locale="en_IN"),
         }
-    except Exception as e:
+    except ExpiredSignatureError as e:
         capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Signature has expired"
+        )
 
 
 # Pull all active registrations based on type of membership
@@ -184,12 +194,18 @@ async def get_all_active_members(
     authorization: Optional[str] = Header(None),
 ):
     if not authorization:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     valid_token = decode_auth_token(authorization)
 
     if not valid_token:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     try:
         records = await userDAL.get_registered_members(membership_type, payment_status)
@@ -228,8 +244,11 @@ async def get_all_active_members(
             all_members.append(member.copy())
 
         return all_members
-    except Exception as e:
+    except ExpiredSignatureError as e:
         capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Signature has expired"
+        )
 
 
 @router.get("/alumniassn/dashboard/expired_members", status_code=status.HTTP_200_OK)
@@ -238,12 +257,18 @@ async def get_all_expired_memberships(
     authorization: Optional[str] = Header(None),
 ):
     if not authorization:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     valid_token = decode_auth_token(authorization)
 
     if not valid_token:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     try:
         records = await userDal.fetch_expired_members()
@@ -271,11 +296,10 @@ async def get_all_expired_memberships(
             expired_memberships.append(member.copy())
 
         return expired_memberships
-    except Exception as e:
+    except ExpiredSignatureError as e:
         capture_exception(e)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not fetch expired memberships",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Signature has expired"
         )
 
 
@@ -286,12 +310,18 @@ async def get_recently_renewed_memberships(
 ):
 
     if not authorization:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     valid_token = decode_auth_token(authorization)
 
     if not valid_token:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
     try:
         records = await userDAL.fetch_recently_renewed_memberships()
 
@@ -318,11 +348,10 @@ async def get_recently_renewed_memberships(
                 renewed_memberships.append(member.copy())
 
         return renewed_memberships
-    except Exception as e:
+    except ExpiredSignatureError as e:
         capture_exception(e)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not fetch renewed memberships",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Signature has expired"
         )
 
 
@@ -349,11 +378,10 @@ async def job_status(
 
         return jobs
 
-    except Exception as e:
+    except ExpiredSignatureError as e:
         capture_exception(e)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not fetch job details",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Signature has expired"
         )
 
 

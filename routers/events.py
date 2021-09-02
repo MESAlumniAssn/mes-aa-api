@@ -5,6 +5,7 @@ from typing import Optional
 
 import requests_async as requests
 from fastapi import Depends
+from fastapi import Header
 from fastapi import HTTPException
 from fastapi import status
 from pydantic import BaseModel
@@ -14,6 +15,7 @@ from . import get_event_dal
 from . import router
 from database.data_access.eventDAL import EventDAL
 from helpers.imagekit_init import initialize_imagekit_prod
+from helpers.token_decoder import decode_auth_token
 
 
 class EventBase(BaseModel):
@@ -29,7 +31,25 @@ class EventBase(BaseModel):
 
 
 @router.post("/events", status_code=status.HTTP_201_CREATED)
-async def post_new_event(event: EventBase, eventDAL: EventDAL = Depends(get_event_dal)):
+async def post_new_event(
+    event: EventBase,
+    authorization: Optional[str] = Header(None),
+    eventDAL: EventDAL = Depends(get_event_dal),
+):
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
+
+    valid_token = decode_auth_token(authorization)
+
+    if not valid_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
+
     try:
         record = await eventDAL.create_new_event(
             event.name,

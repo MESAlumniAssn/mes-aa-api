@@ -390,12 +390,18 @@ async def get_user_details_from_membership_d(
     authorization: Optional[str] = Header(None),
 ):
     if not authorization:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     valid_token = decode_auth_token(authorization)
 
     if not valid_token:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     try:
         user_id = int(membership_id.split("-")[3])
@@ -433,12 +439,18 @@ async def update_user_payment_status(
 ):
 
     if not authorization:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     valid_token = decode_auth_token(authorization)
 
     if not valid_token:
-        return "Uh uh uh... You didn't say the magic word"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Uh uh uh... You didn't say the magic word",
+        )
 
     try:
         if status.membership_type == "Lifetime":
