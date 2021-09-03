@@ -17,6 +17,8 @@ from . import get_user_dal
 from . import router
 from database.data_access.adminDAL import AdminDAL
 from database.data_access.userDAL import UserDAL
+from helpers.modified_id import abbreviated_membership
+from helpers.modified_id import modify_record_id
 from helpers.token_decoder import decode_auth_token
 
 
@@ -217,7 +219,7 @@ async def get_all_active_members(
             member["id"] = record.id
             member[
                 "membership_id"
-            ] = f"MESAA-LM-{str(record.duration_end)[-2:]}-{record.id}"
+            ] = f"MESAA-{abbreviated_membership(membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
             member["full_name"] = (
                 record.prefix + ". " + record.first_name + " " + record.last_name
             )
@@ -282,7 +284,7 @@ async def get_all_expired_memberships(
             member["id"] = record.id
             member[
                 "membership_id"
-            ] = f"MESAA-LM-{str(record.duration_end)[-2:]}-{record.id}"
+            ] = f"MESAA-{abbreviated_membership(record.membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
             member["full_name"] = (
                 record.prefix + ". " + record.first_name + " " + record.last_name
             )
@@ -333,11 +335,12 @@ async def get_recently_renewed_memberships(
         member = {}
 
         for record in records:
+
             if int((today - record.date_renewed).total_seconds() / 3600 / 24) < 30:
                 member["id"] = record.id
                 member[
                     "membership_id"
-                ] = f"MESAA-LM-{str(record.duration_end)[-2:]}-{record.id}"
+                ] = f"MESAA-{abbreviated_membership(record.membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
                 member["full_name"] = (
                     record.prefix + ". " + record.first_name + " " + record.last_name
                 )

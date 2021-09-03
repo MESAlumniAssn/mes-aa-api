@@ -22,6 +22,8 @@ from . import get_user_dal
 from . import router
 from database.data_access.userDAL import UserDAL
 from helpers.imagekit_init import initialize_imagekit
+from helpers.modified_id import abbreviated_membership
+from helpers.modified_id import modify_record_id
 from helpers.token_decoder import decode_auth_token
 
 
@@ -298,7 +300,7 @@ async def get_user_from_email(alt_id: str, userDAL: UserDAL = Depends(get_user_d
         if not record:
             return None
 
-        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{abbreviated_membership(record.membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
 
         return {
             "name": record.first_name + " " + record.last_name,
@@ -317,7 +319,7 @@ async def get_user_details(alt_user_id: str, userDAL: UserDAL = Depends(get_user
         if not record:
             return None
 
-        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{abbreviated_membership(record.membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
 
         return {
             "name": record.prefix + ". " + record.first_name + " " + record.last_name,
@@ -367,7 +369,7 @@ async def get_user_details_from_email(
         if record.payment_mode == "O" or record.payment_status:
             return None
 
-        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{abbreviated_membership(record.membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
 
         alumnus_name = f"{record.prefix}. {record.first_name} {record.last_name}"
 
@@ -411,7 +413,7 @@ async def get_user_details_from_membership_d(
         if not record:
             return "That id does not exist"
 
-        membership_id = f"MESAA-{'LM' if record.membership_type == 'Lifetime' else 'OM'}-{str(record.duration_end)[-2:]}-{record.id}"
+        membership_id = f"MESAA-{abbreviated_membership(record.membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
 
         return {
             "user_id": record.id,

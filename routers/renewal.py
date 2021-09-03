@@ -13,6 +13,7 @@ from sentry_sdk import capture_exception
 from . import get_user_dal
 from . import router
 from database.data_access.userDAL import UserDAL
+from helpers.modified_id import modify_record_id
 
 
 class Renewal(BaseModel):
@@ -67,8 +68,10 @@ async def renewal_details(renewal_hash: str, userDAL: UserDAL = Depends(get_user
             else datetime.date.today() + relativedelta(years=1)
         )
 
+        modified_record_id = modify_record_id(record[0].id)
+
         membership_id_prefix = "MESAA-"
-        membership_id_suffix = f"{str(record[0].duration_end)[2:]}-{record[0].id}"
+        membership_id_suffix = f"{str(record[0].duration_end)[2:]}-{modified_record_id}"
 
         annual_membership_id = membership_id_prefix + "OM-" + membership_id_suffix
         lifetime_membership_id = membership_id_prefix + "LM-" + membership_id_suffix
