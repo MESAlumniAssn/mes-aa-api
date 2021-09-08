@@ -264,8 +264,7 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
     message.template_id = os.getenv("PAYMENT_RECEIPT_EMAIL_TEMPLATE")
 
     try:
-        send_message(message)
-        # background_task.add_task(send_message, message)
+        background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
     except Exception as e:
         capture_exception(e)
@@ -391,6 +390,26 @@ async def send_event_notification(
 
     try:
         background_task.add_task(send_message, message)
+        return status.HTTP_202_ACCEPTED
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+@router.post("/email/auto_response", status_code=status.HTTP_201_CREATED)
+async def send_auto_response_email(email: EmailBase, background_task: BackgroundTasks):
+    message = Mail(
+        from_email=os.getenv("CONTACT_EMAIL"),
+        to_emails=email.to_email,
+        subject="Thanks for your message!",
+        html_content="<p>Thanks for contacting <strong>The MES College Alumni Association<sup>&#174;</sup></strong>. We have received your message and will be in touch very soon.</p>",
+    )
+
+    try:
+        send_message(message)
+        # background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
     except Exception as e:
         capture_exception(e)
