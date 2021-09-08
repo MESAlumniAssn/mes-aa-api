@@ -401,15 +401,14 @@ async def send_event_notification(
 @router.post("/email/auto_response", status_code=status.HTTP_201_CREATED)
 async def send_auto_response_email(email: EmailBase, background_task: BackgroundTasks):
     message = Mail(
-        from_email=os.getenv("CONTACT_EMAIL"),
+        from_email=os.getenv("ADMIN_EMAIL"),
         to_emails=email.to_email,
-        subject="Thanks for your message!",
-        html_content="<p>Thanks for contacting <strong>The MES College Alumni Association<sup>&#174;</sup></strong>. We have received your message and will be in touch very soon.</p>",
     )
 
+    message.template_id = os.getenv("AUTO_RESPONSE_EMAIL_TEMPLATE")
+
     try:
-        send_message(message)
-        # background_task.add_task(send_message, message)
+        background_task.add_task(send_message, message)
         return status.HTTP_202_ACCEPTED
     except Exception as e:
         capture_exception(e)
