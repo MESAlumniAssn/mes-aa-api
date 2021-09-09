@@ -196,9 +196,15 @@ async def upcoming_events(eventDAL: EventDAL = Depends(get_event_dal)):
         records = await eventDAL.fetch_upcoming_events()
 
         for record in records:
+            date_of_event = (
+                record.event_date.strftime("%d-%b-%Y")
+                if record.event_date > datetime.date.today()
+                else "today"
+            )
+
             event_obj["event_id"] = record.id
             event_obj["name"] = record.name
-            event_obj["date"] = record.event_date.strftime("%d-%b-%Y")
+            event_obj["date"] = date_of_event
 
             events.append(event_obj.copy())
 

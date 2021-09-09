@@ -68,7 +68,7 @@ class EventDAL:
     async def fetch_upcoming_events(self):
         q = await self.session.execute(
             select(Event).where(
-                Event.event_date > datetime.date.today(),
+                Event.event_date >= datetime.date.today(),
                 Event.event_date < datetime.date.today() + datetime.timedelta(days=7),
             )
         )
