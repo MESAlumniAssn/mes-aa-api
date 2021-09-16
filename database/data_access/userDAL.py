@@ -233,6 +233,7 @@ class UserDAL:
         q = q.values(membership_certificate_url=membership_certificate_url)
         q = q.values(membership_expired=False)
         q = q.values(date_renewed=date_renewed)
+        q = q.values(payment_mode=payment_mode)
         q = q.values(payment_status=payment_mode == "O")
 
         await self.session.execute(q)
