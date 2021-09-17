@@ -250,7 +250,7 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
         "city": email.city,
         "state": email.state,
         "pincode": email.pincode,
-        "country": email.country,
+        "country": email.country.title(),
         "invoice_number": email.invoice_number,
         "invoice_date": datetime.date.today().strftime("%d-%b-%Y"),
         "membership_type": email.membership_type,
