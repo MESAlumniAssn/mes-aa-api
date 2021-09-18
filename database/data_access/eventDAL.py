@@ -38,7 +38,7 @@ class EventDAL:
         q = await self.session.execute(
             select(Event)
             .where(Event.event_date >= datetime.date.today())
-            .order_by(Event.event_date.desc())
+            .order_by(Event.event_date.asc())
         )
 
         return q.scalars().all()
