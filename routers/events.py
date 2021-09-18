@@ -106,10 +106,16 @@ async def get_all_events(status: str, eventDAL: EventDAL = Depends(get_event_dal
             records = await eventDAL.fetch_all_completed_events()
 
         for record in records:
+            date_of_event = (
+                "TODAY"
+                if record.event_date == datetime.date.today()
+                else record.event_date.strftime("%d-%b-%Y")
+            )
+
             event_obj["event_id"] = record.id
             event_obj["name"] = record.name
             event_obj["description"] = record.description
-            event_obj["date"] = record.event_date.strftime("%d-%b-%Y")
+            event_obj["date"] = date_of_event
             event_obj["time"] = record.event_time
             event_obj["venue"] = record.venue
             event_obj["chief_guest"] = record.chief_guest

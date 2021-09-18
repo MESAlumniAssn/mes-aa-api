@@ -1,5 +1,6 @@
 import datetime
 
+from sqlalchemy import or_
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
 
@@ -36,7 +37,7 @@ class EventDAL:
     async def fetch_all_upcoming_events(self):
         q = await self.session.execute(
             select(Event)
-            .where(Event.event_date > datetime.date.today())
+            .where(Event.event_date >= datetime.date.today())
             .order_by(Event.event_date.desc())
         )
 
@@ -59,7 +60,12 @@ class EventDAL:
     async def fetch_completed_events(self, text):
         q = await self.session.execute(
             select(Event).where(
-                Event.name.ilike(f"%{text}%"), Event.event_date < datetime.date.today()
+                or_(
+                    Event.name.ilike(f"%{text}%"),
+                    Event.venue.ilike(f"%{text}%"),
+                    Event.chief_guest.ilike(f"%{text}%"),
+                ),
+                Event.event_date < datetime.date.today(),
             )
         )
 
