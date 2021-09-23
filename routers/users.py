@@ -21,7 +21,7 @@ from sentry_sdk import capture_exception
 from . import get_user_dal
 from . import router
 from database.data_access.userDAL import UserDAL
-from helpers.imagekit_init import initialize_imagekit
+from helpers.imagekit_init import initialize_imagekit_prod
 from helpers.modified_id import abbreviated_membership
 from helpers.modified_id import modify_record_id
 from helpers.token_decoder import decode_auth_token
@@ -104,7 +104,7 @@ def fix_image_orientation(optimized_image):
 
 
 def upload_file_to_imagekit(alt_user_id: str, images: List):
-    imagekit = initialize_imagekit()
+    imagekit = initialize_imagekit_prod()
 
     file_name, file_ext = os.path.splitext(images[0].filename)
 
