@@ -69,6 +69,15 @@ async def post_new_event(
             data={"folderName": formatted_name, "parentFolderPath": "MES-AA/Events"},
         )
 
+        await requests.post(
+            "https://api.imagekit.io/v1/folder/",
+            auth=(os.getenv("IMAGEKIT_PRIVATE_KEY_PROD") + ":", " "),
+            data={
+                "folderName": "cover-photo",
+                "parentFolderPath": f"MES-AA/Events/{formatted_name}",
+            },
+        )
+
         if not record:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -98,6 +107,8 @@ async def get_all_events(status: str, eventDAL: EventDAL = Depends(get_event_dal
     events = []
     event_obj = {}
 
+    imagekit = initialize_imagekit_prod()
+
     try:
         if status == "upcoming":
             records = await eventDAL.fetch_all_upcoming_events()
@@ -112,13 +123,27 @@ async def get_all_events(status: str, eventDAL: EventDAL = Depends(get_event_dal
                 else record.event_date.strftime("%d-%b-%Y")
             )
 
+            formatted_name = record.name.split(" ")
+            formatted_name = ("-").join(formatted_name)
+
+            cover_photo = imagekit.list_files(
+                {"path": f"MES-AA/Events/{formatted_name}/cover-photo", "limit": 1}
+            )
+
+            cover_photo = (
+                cover_photo["response"][0]["url"]
+                if len(cover_photo["response"]) != 0
+                else None
+            )
+
             event_obj["event_id"] = record.id
-            event_obj["name"] = record.name
+            event_obj["name"] = record.name.capitalize()
             event_obj["description"] = record.description
             event_obj["date"] = date_of_event
             event_obj["time"] = record.event_time
             event_obj["venue"] = record.venue
             event_obj["chief_guest"] = record.chief_guest
+            event_obj["cover_photo"] = cover_photo
 
             events.append(event_obj.copy())
 
