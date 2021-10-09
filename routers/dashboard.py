@@ -247,10 +247,10 @@ async def get_all_active_members(
             all_members.append(member.copy())
 
         return all_members
-    except ExpiredSignatureError as e:
+    except Exception as e:
         capture_exception(e)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Signature has expired"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not fetch details"
         )
 
 
