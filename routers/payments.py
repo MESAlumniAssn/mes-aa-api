@@ -68,9 +68,12 @@ async def verify_payment(
     try:
         verification_status = client.utility.verify_payment_signature(params_dict)
 
-        await user_dal.update_payment_status_by_email(payment_verification.email)
-
         if verification_status is None:  # success
+            await user_dal.update_payment_status_by_email(
+                payment_verification.email,
+                payment_verification.payment_id,
+                payment_verification.order_id,
+            )
             return {"status": verification_status}
     except SignatureVerificationError:
         capture_exception(SignatureVerificationError)

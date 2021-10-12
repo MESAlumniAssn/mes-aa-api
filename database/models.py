@@ -80,6 +80,7 @@ class User(Base):
     membership_certificate_url = Column(String(500))
     payment_mode = Column(String(1), default="O")
     razorpay_order_id = Column(String(100))
+    razorpay_payment_id = Column(String(100))
     manual_payment_notification = Column(Boolean, default=False)
     email_subscription_status = Column(Boolean, default=True)
 

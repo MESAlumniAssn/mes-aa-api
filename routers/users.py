@@ -6,6 +6,7 @@ import uuid
 from typing import List
 from typing import Optional
 
+import requests_async as requests
 from dateutil.relativedelta import relativedelta
 from fastapi import Depends
 from fastapi import Form
@@ -162,6 +163,7 @@ async def create_user(
     payment_mode: str = Form(...),
     payment_status: bool = Form(...),
     razorpay_order_id: str = Form(...),
+    razorpay_payment_id: str = Form(...),
     images: Optional[List[UploadFile]] = Form([]),
     userDAL: UserDAL = Depends(get_user_dal),
 ):
@@ -169,13 +171,13 @@ async def create_user(
     birthday = birthday.date()
 
     # Check if email exists
-    email_on_record = await userDAL.check_if_email_exists(email.lower())
+    # email_on_record = await userDAL.check_if_email_exists(email.lower())
 
-    if email_on_record:
-        raise HTTPException(
-            status_code=403,
-            detail=f"A registration for {email_on_record.email} already exists. Please use a different email address.",
-        )
+    # if email_on_record:
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail=f"A registration for {email_on_record.email} already exists. Please use a different email address.",
+    #     )
 
     # The alternate user id will be used in the urls for the id card and certificate
     alt_user_id = uuid.uuid4()
@@ -233,6 +235,7 @@ async def create_user(
             payment_mode,
             payment_status,
             razorpay_order_id,
+            razorpay_payment_id,
             str(alt_user_id),
             membership_valid_up_to,
             image_url,
@@ -249,18 +252,18 @@ async def create_user(
 
         return {
             "id": record,
-            "prefix": prefix,
-            "first_name": first_name,
-            "last_name": last_name,
+            "prefix": prefix.title(),
+            "first_name": first_name.title().strip(),
+            "last_name": last_name.title().strip(),
             "email": email.lower(),
             "mobile": mobile,
             "birthday": birthday,
-            "address1": address1,
-            "address2": address2,
-            "city": city,
-            "state": state,
-            "pincode": pincode,
-            "country": country,
+            "address1": address1.title().strip(),
+            "address2": address2.title().strip(),
+            "city": city.title().strip(),
+            "state": state.title().strip(),
+            "pincode": pincode.upper().strip(),
+            "country": country.title(),
             "duration_start": duration_start,
             "duration_end": duration_end,
             "course_puc": course_puc,
@@ -268,7 +271,7 @@ async def create_user(
             "course_pg": course_pg,
             "course_others": course_others,
             "vision": vision,
-            "profession": profession,
+            "profession": profession.title(),
             "other_interests": other_interests,
             "membership_type": membership_type,
             "alt_user_id": alt_user_id,
@@ -281,16 +284,24 @@ async def create_user(
         )
 
 
-# @router.delete("/user/delete/{alt_id}", status_code=status.HTTP_200_OK)
-# async def delete_temp_user(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
-#     try:
-#         await userDAL.delete_temp_user(alt_id)
-#     except Exception as e:
-#         capture_exception(e)
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="Could not delete the temporary user",
-#         )
+@router.delete("/user/delete/{alt_id}", status_code=status.HTTP_200_OK)
+async def delete_temp_user(alt_id: str, userDAL: UserDAL = Depends(get_user_dal)):
+    try:
+        await userDAL.delete_temp_user(alt_id)
+
+        folder_to_delete = f"MES-AA/Profile/{alt_id}"
+
+        await requests.delete(
+            "https://api.imagekit.io/v1/folder/",
+            auth=(os.getenv("IMAGEKIT_PRIVATE_KEY_PROD") + ":", " "),
+            data={"folderPath": folder_to_delete},
+        )
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not delete the temporary user",
+        )
 
 
 @router.get("/user/{alt_id}", status_code=status.HTTP_200_OK)
@@ -411,7 +422,7 @@ async def get_user_details_from_membership_d(
         record = await userDAL.get_user_details_for_id(user_id)
 
         if not record:
-            return "That id does not exist"
+            return "That id does not exist for a manual payment"
 
         membership_id = f"MESAA-{abbreviated_membership(record.membership_type)}-{str(record.duration_end)[-2:]}-{modify_record_id(record.id)}"
 

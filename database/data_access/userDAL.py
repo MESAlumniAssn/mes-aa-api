@@ -49,6 +49,7 @@ class UserDAL:
         payment_mode: str,
         payment_status: bool,
         razorpay_order_id: str,
+        razorpay_payment_id: str,
         alt_user_id: str,
         membership_valid_upto: datetime.date,
         profile_url: str,
@@ -82,6 +83,7 @@ class UserDAL:
             payment_mode=payment_mode,
             payment_status=payment_status,
             razorpay_order_id=razorpay_order_id,
+            razorpay_payment_id=razorpay_payment_id,
             alt_user_id=alt_user_id,
             membership_valid_upto=membership_valid_upto,
             profile_url=profile_url,
@@ -108,7 +110,9 @@ class UserDAL:
         return q.scalars().first()
 
     async def get_user_details_for_id(self, user_id: int) -> List[User]:
-        q = await self.session.execute(select(User).where(User.id == user_id))
+        q = await self.session.execute(
+            select(User).where(User.id == user_id, User.payment_mode == "M")
+        )
         return q.scalars().first()
 
     async def update_payment_status_lifetime(self, user_id: int) -> None:
@@ -129,9 +133,12 @@ class UserDAL:
 
         await self.session.execute(q)
 
-    async def update_payment_status_by_email(self, email: str) -> None:
-        q = update(User).where(User.email == email)
+    async def update_payment_status_by_email(
+        self, email: str, payment_id: str, order_id: str
+    ) -> None:
+        q = update(User).where(User.email == email, User.razorpay_order_id == order_id)
         q = q.values(payment_status=True)
+        q = q.values(razorpay_payment_id=payment_id)
 
         await self.session.execute(q)
 
@@ -141,13 +148,30 @@ class UserDAL:
 
         await self.session.execute(q)
 
-    async def get_registered_members(self, member_type: str, payment) -> List[User]:
+    async def get_registered_members(
+        self, member_type: str, payment: int
+    ) -> List[User]:
         q = await self.session.execute(
             select(User)
             .where(
                 User.membership_type == member_type,
                 User.payment_status == bool(payment),
                 User.membership_expired == False,
+            )
+            .order_by(User.id.desc())
+        )
+        return q.scalars().all()
+
+    async def get_registered_pending_members(
+        self, member_type: str, payment: int
+    ) -> List[User]:
+        q = await self.session.execute(
+            select(User)
+            .where(
+                User.membership_type == member_type,
+                User.payment_status == bool(payment),
+                User.membership_expired == False,
+                User.payment_mode == "M",
             )
             .order_by(User.id.desc())
         )

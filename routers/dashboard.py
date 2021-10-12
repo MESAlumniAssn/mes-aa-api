@@ -52,9 +52,6 @@ async def generate_dashboard_information(
     try:
         records = await userDAL.get_all_users()
 
-        # Total registrations
-        total_registrations = len([record for record in records])
-
         # Total successful registrations
         successful_registrations = len(
             [record for record in records if record.payment_status]
@@ -65,9 +62,14 @@ async def generate_dashboard_information(
             [
                 record
                 for record in records
-                if not record.payment_status and not record.membership_expired
+                if not record.payment_status
+                and not record.membership_expired
+                and record.payment_mode == "M"
             ]
         )
+
+        # Total registrations
+        total_registrations = int(successful_registrations + pending_registrations)
 
         # Total life members
         life_members = len(
@@ -83,7 +85,9 @@ async def generate_dashboard_information(
             [
                 record
                 for record in records
-                if record.membership_type == "Lifetime" and not record.payment_status
+                if record.membership_type == "Lifetime"
+                and not record.payment_status
+                and record.payment_mode == "M"
             ]
         )
 
@@ -106,6 +110,7 @@ async def generate_dashboard_information(
                 if record.membership_type == "Annual"
                 and not record.payment_status
                 and not record.membership_expired
+                and record.payment_mode == "M"
             ]
         )
 
@@ -210,7 +215,16 @@ async def get_all_active_members(
         )
 
     try:
-        records = await userDAL.get_registered_members(membership_type, payment_status)
+
+        if payment_status:
+            records = await userDAL.get_registered_members(
+                membership_type, payment_status
+            )
+
+        if not payment_status:
+            records = await userDAL.get_registered_pending_members(
+                membership_type, payment_status
+            )
 
         all_members = []
         member = {}
