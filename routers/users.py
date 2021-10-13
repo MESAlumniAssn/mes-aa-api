@@ -16,6 +16,7 @@ from fastapi import status
 from fastapi import UploadFile
 from PIL import ExifTags
 from PIL import Image
+from PIL import UnidentifiedImageError
 from pydantic import BaseModel
 from sentry_sdk import capture_exception
 
@@ -114,26 +115,32 @@ def upload_file_to_imagekit(alt_user_id: str, images: List):
     if file_ext == ".jpg":
         file_ext = ".jpeg"
 
-    optimized_image = Image.open(images[0].file)
-    optimized_image = fix_image_orientation(optimized_image)
+    try:
+        optimized_image = Image.open(images[0].file)
+        optimized_image = fix_image_orientation(optimized_image)
 
-    in_mem_file = io.BytesIO()
-    optimized_image.save(in_mem_file, format=file_ext[1:], optimized=True)
-    in_mem_file.seek(0)
+        in_mem_file = io.BytesIO()
+        optimized_image.save(in_mem_file, format=file_ext[1:], optimized=True)
+        in_mem_file.seek(0)
 
-    random_file_name = secrets.token_hex(8)
+        random_file_name = secrets.token_hex(8)
 
-    uploaded_image = imagekit.upload_file(
-        file=in_mem_file,
-        file_name=random_file_name,
-        options={
-            "folder": f"MES-AA/Profile/{alt_user_id}",
-            "is_private_file": False,
-            "use_unique_file_name": False,
-        },
-    )
+        uploaded_image = imagekit.upload_file(
+            file=in_mem_file,
+            file_name=random_file_name,
+            options={
+                "folder": f"MES-AA/Profile/{alt_user_id}",
+                "is_private_file": False,
+                "use_unique_file_name": False,
+            },
+        )
 
-    return uploaded_image["response"]["url"]
+        return uploaded_image["response"]["url"]
+    except UnidentifiedImageError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The format of the uploaded image is currently unsupported.\nPlease upload a different image.",
+        )
 
 
 @router.post("/register/user", status_code=status.HTTP_201_CREATED)
