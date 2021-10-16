@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 from functools import reduce
 from typing import Optional
 
@@ -42,6 +43,8 @@ async def generate_dashboard_information(
         )
 
     valid_token = decode_auth_token(authorization)
+
+    online_payment_match = re.compile("^[pay_]")
 
     if not valid_token:
         raise HTTPException(
@@ -157,6 +160,25 @@ async def generate_dashboard_information(
         if amounts_am:
             total_amount_am = reduce(lambda x, y: x + y, amounts_am)
 
+        # Count of online payments
+        online_payments = len(
+            [
+                record
+                for record in records
+                if record.payment_mode == "O"
+                and re.match(online_payment_match, record.razorpay_payment_id)
+                and record.payment_status
+            ]
+        )
+
+        manual_payments = len(
+            [
+                record
+                for record in records
+                if record.payment_mode == "M" and record.payment_status
+            ]
+        )
+
         return {
             "total_registrations": format_decimal(total_registrations, locale="en_IN"),
             "successful_registrations": format_decimal(
@@ -181,6 +203,8 @@ async def generate_dashboard_information(
                 pending_annual_members, locale="en_IN"
             ),
             "expired_memberships": format_decimal(expired_memberships, locale="en_IN"),
+            "online_payments": online_payments,
+            "manual_payments": manual_payments,
         }
     except ExpiredSignatureError as e:
         capture_exception(e)
@@ -257,6 +281,7 @@ async def get_all_active_members(
             member["profile_url"] = record.profile_url
             member["id_card_url"] = record.id_card_url
             member["membership_certificate_url"] = record.membership_certificate_url
+            member["payment_mode"] = record.payment_mode
 
             all_members.append(member.copy())
 
