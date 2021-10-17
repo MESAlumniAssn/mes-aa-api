@@ -103,6 +103,12 @@ class UserDAL:
         q = await self.session.execute(select(User).where(User.email == email))
         return q.scalars().first()
 
+    async def check_if_payment_is_successful(self, email: str):
+        q = await self.session.execute(
+            select(User).where(User.email == email, User.payment_status == True)
+        )
+        return q.scalars().first()
+
     async def get_user_details_for_alt_id(self, alt_user_id: str) -> List[User]:
         q = await self.session.execute(
             select(User).where(User.alt_user_id == alt_user_id)

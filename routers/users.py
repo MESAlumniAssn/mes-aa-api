@@ -363,7 +363,7 @@ async def check_for_existing_email(
     email: str, userDAL: UserDAL = Depends(get_user_dal)
 ):
     try:
-        email_on_record = await userDAL.check_if_email_exists(email.lower())
+        email_on_record = await userDAL.check_if_payment_is_successful(email.lower())
 
         if email_on_record:
             return f"A registration for {email_on_record.email} already exists. Please use a different email address."
