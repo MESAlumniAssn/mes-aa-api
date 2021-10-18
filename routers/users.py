@@ -367,6 +367,13 @@ async def check_for_existing_email(
 
         if email_on_record:
             return f"A registration for {email_on_record.email} already exists. Please use a different email address."
+        else:
+            manual_payment_record = await userDAL.check_if_manual_payment_record_exists(
+                email.lower()
+            )
+
+        if manual_payment_record:
+            return f"A manual payment for {manual_payment_record.email} has already been submitted. Please wait until your payment is reviewed."
 
         return None
     except Exception as e:
