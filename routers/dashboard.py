@@ -282,6 +282,7 @@ async def get_all_active_members(
             member["id_card_url"] = record.id_card_url
             member["membership_certificate_url"] = record.membership_certificate_url
             member["payment_mode"] = record.payment_mode
+            member["joining_date"] = record.date_created
 
             all_members.append(member.copy())
 
