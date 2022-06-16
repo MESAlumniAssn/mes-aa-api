@@ -230,6 +230,10 @@ def send_payment_receipt(email: PaymentReceiptEmail, background_task: Background
     message = Mail(from_email=os.getenv("ADMIN_EMAIL"), to_emails=email.to_email)
 
     message.add_cc(os.getenv("TREASURER_EMAIL"))
+
+    # This line is needed until the SendGrid blacklist issue is resolved
+    message.add_bcc(os.getenv("TECH_EMAIL"))
+
     expiry_date = datetime.date.today() + relativedelta(years=1)
 
     # renewal_date is sent int payload only for renewals
