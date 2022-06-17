@@ -9,12 +9,15 @@ from fastapi import HTTPException
 from fastapi import status
 from fastapi.param_functions import Depends
 from pydantic import BaseModel
+from sendgrid.helpers.mail import Bcc
+from sendgrid.helpers.mail import Email
 from sendgrid.helpers.mail import Mail
 from sentry_sdk import capture_exception
 
 from . import get_user_dal
 from . import router
 from database.data_access.userDAL import UserDAL
+from helpers.mailbox_name import mailbox_mapping
 from helpers.random_messages import return_random_message
 from helpers.sendgrid_init import send_message
 
@@ -109,6 +112,15 @@ class EventNotificationEmail(BaseModel):
     event_time: str
     venue: str
     chief_guest: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class BulkEmailNotification(BaseModel):
+    mailbox: str
+    message: str
+    subject: str
 
     class Config:
         orm_mode = True
@@ -391,6 +403,49 @@ async def send_event_notification(
     }
 
     message.template_id = os.getenv("EVENT_NOTIFICATION_EMAIL_TEMPLATE")
+
+    try:
+        background_task.add_task(send_message, message)
+        return status.HTTP_202_ACCEPTED
+    except Exception as e:
+        capture_exception(e)
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="The email could not be sent"
+        )
+
+
+@router.post("/email/alumni", status_code=status.HTTP_201_CREATED)
+async def send_bulk_emails_to_alumni(
+    email: BulkEmailNotification,
+    background_task: BackgroundTasks,
+    userDAL: UserDAL = Depends(get_user_dal),
+):
+    records = await userDAL.get_all_users_for_bulk_email_send()
+
+    association_emails = [assn_email for assn_email in mailbox_mapping.keys()]
+    alumni_emails = [record.email for record in records]
+
+    message = Mail(
+        from_email=Email(
+            email.mailbox,
+            f"{mailbox_mapping[email.mailbox]} - The MES College Alumni Association®",
+        ),
+        to_emails=association_emails,
+    )
+
+    for alumni_email in alumni_emails:
+        message.add_bcc(Bcc(alumni_email))
+
+    mailbox_name = mailbox_mapping[email.mailbox]
+    modified_message = email.message.replace("\n", "<br />")
+
+    message.dynamic_template_data = {
+        "subject": email.subject,
+        "mailbox_name": mailbox_name,
+        "message": modified_message,
+    }
+
+    message.template_id = os.getenv("BULK_EMAIL_TEMPLATE")
 
     try:
         background_task.add_task(send_message, message)

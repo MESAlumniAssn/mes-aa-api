@@ -330,6 +330,15 @@ class UserDAL:
 
         return q.scalars().all()
 
+    async def get_all_users_for_bulk_email_send(self):
+        q = await self.session.execute(
+            select(User).where(
+                User.payment_status == True, User.membership_expired == False
+            )
+        )
+
+        return q.scalars().all()
+
     # async def update_user_details(
     #     self,
     #     user_id: int,
